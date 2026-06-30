@@ -3,8 +3,9 @@
 Local-first pipeline for producing comic-first YouTube videos from research,
 scripts, edited narration, and an indexed comic library.
 
-Status: Sprint 0 source audit complete. Application implementation has not
-started. See [STATUS.md](STATUS.md) and
+Status: Sprint 0 source audit complete. Active checkpoint: sub-sprint `1.1`
+(Python package skeleton). Application implementation has not started. See
+[STATUS.md](STATUS.md) and
 [docs/TOOL_AUDIT.md](docs/TOOL_AUDIT.md).
 
 ## Product constraints
@@ -27,7 +28,8 @@ No React UI, retrieval model, or renderer until that foundation passes.
 
 - `docs/PRODUCT_SPEC.md` — full product outline
 - `SPRINTS.md` — roadmap and sprint acceptance gates
-- `SPRINT_STATE.json` — machine-readable progress
+- `SPRINT_STATE.json` — machine-readable active sub-sprint/progress
+- `docs/SUB_SPRINT_TEMPLATE.md` — context-safe checkpoint format
 - `docs/TOOL_AUDIT.md` — pinned upstream findings
 - `docs/REUSE_MATRIX.md` — call/adapt/port/recreate/reject decisions
 - `docs/LICENSE_MATRIX.md` — integration license boundaries

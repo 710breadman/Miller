@@ -4,9 +4,9 @@ Updated: 2026-06-29
 
 ## Current
 
-Sprint 0 complete. Repository initialized from product outline. Upstream source
-audit pinned 11 repositories and established implementation/license boundaries.
-No production application code exists yet.
+Sprint 0 complete. Roadmap decomposed into small, independently verifiable
+sub-sprints. Active checkpoint: `1.1 — Python package skeleton`. No production
+application code exists yet.
 
 ## Decisions
 
@@ -35,5 +35,5 @@ No production application code exists yet.
 
 ## Next
 
-Start Sprint 1. First task: define project, artifact, stage, attempt, and event
-schemas plus stage-transition invariants. Do not start UI or media features.
+Execute only `1.1 — Python package skeleton`: add packaging/layout/test config;
+verify clean install plus import smoke test. Do not begin schemas or DB.

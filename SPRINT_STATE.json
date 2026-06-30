@@ -1,19 +1,31 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "updated_at": "2026-06-29",
   "current_sprint": 1,
-  "sprints": [
-    {
-      "id": 0,
-      "name": "Source audit",
-      "status": "completed",
-      "completed_at": "2026-06-29"
-    },
-    {
-      "id": 1,
-      "name": "Project foundation",
-      "status": "pending"
-    }
+  "active_sub_sprint": "1.1",
+  "last_completed_sub_sprint": "0.4",
+  "completed_sub_sprints": [
+    "0.1",
+    "0.2",
+    "0.3",
+    "0.4"
   ],
-  "next_task": "Define typed core schemas and stage-transition invariants."
+  "blocked_sub_sprints": [],
+  "milestones": {
+    "0": "completed",
+    "1": "in_progress",
+    "2": "pending",
+    "3": "pending",
+    "4": "pending",
+    "5": "pending",
+    "6": "pending",
+    "7": "pending",
+    "8": "pending",
+    "9": "pending",
+    "10": "pending",
+    "11": "pending",
+    "12": "pending",
+    "13": "pending"
+  },
+  "next_task": "Execute only 1.1: create Python package skeleton and verify clean install/import."
 }

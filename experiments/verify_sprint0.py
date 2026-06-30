@@ -65,9 +65,19 @@ def main() -> int:
         require(decision in reuse_text, f"decision vocabulary missing: {decision}")
 
     sprint_state = json.loads((ROOT / "SPRINT_STATE.json").read_text(encoding="utf-8"))
-    sprint_zero = next(item for item in sprint_state["sprints"] if item["id"] == 0)
-    require(sprint_zero["status"] == "completed", "Sprint 0 is not completed")
+    require(
+        sprint_state["milestones"]["0"] == "completed",
+        "Sprint 0 is not completed",
+    )
+    require(
+        sprint_state["completed_sub_sprints"][:4] == ["0.1", "0.2", "0.3", "0.4"],
+        "Sprint 0 sub-sprints are not completed",
+    )
     require(sprint_state["current_sprint"] == 1, "next sprint is not Sprint 1")
+    require(
+        sprint_state["active_sub_sprint"] == "1.1",
+        "active sub-sprint is not 1.1",
+    )
 
     print(f"Sprint 0 verified: {len(REQUIRED_DOCS)} docs, {len(repositories)} pins")
     return 0

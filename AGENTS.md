@@ -61,11 +61,15 @@ render history. External applications never become source of truth.
 ## Codex procedure
 
 1. Read `AGENTS.md`, `STATUS.md`, and `SPRINT_STATE.json`.
-2. Read only active sprint in `SPRINTS.md`.
-3. Inspect existing implementation.
-4. Select next incomplete task.
-5. Implement only that task.
-6. Run relevant tests and verify artifacts.
-7. Update status and sprint state.
-8. Record decisions/failures.
-9. Stop at a stable checkpoint.
+2. Read only `active_sub_sprint` in `SPRINTS.md` plus directly required files.
+3. Treat `active_sub_sprint` as hard scope. Never batch adjacent sub-sprints.
+4. Inspect existing implementation.
+5. Implement only active sub-sprint outcome.
+6. Run its gate plus relevant regression tests; inspect generated artifacts.
+7. Update `STATUS.md` with result, decisions, failures, and exact next step.
+8. Mark only active sub-sprint complete in `SPRINT_STATE.json`; advance once.
+9. Stop at a stable, reviewable checkpoint.
+
+If active sub-sprint proves too large for one focused run, split it before
+implementation using `docs/SUB_SPRINT_TEMPLATE.md`. Preserve original outcome
+and order. Never silently widen scope.
