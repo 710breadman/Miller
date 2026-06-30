@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-06-29",
+  "notes": "Read-only source audit. No upstream code was executed or copied.",
+  "repositories": [
+    {
+      "name": "MoneyPrinterTurbo",
+      "repository": "https://github.com/harry0703/MoneyPrinterTurbo",
+      "revision": "48b08719c9690739a79dc70665db8dbd109c2afc",
+      "license": "MIT"
+    },
+    {
+      "name": "BallonsTranslator",
+      "repository": "https://github.com/dmMaze/BallonsTranslator",
+      "revision": "27c26554fc2ee753fa42d7521441e93098c3e830",
+      "license": "GPL-3.0"
+    },
+    {
+      "name": "StoryToolkitAI",
+      "repository": "https://github.com/octimot/StoryToolkitAI",
+      "revision": "541b4128d763adab4608fbfa6b888b1ae092a253",
+      "license": "GPL-3.0"
+    },
+    {
+      "name": "Revideo",
+      "repository": "https://github.com/midrender/revideo",
+      "revision": "eef799d3999b1ec441a778e7f573f288a719c647",
+      "license": "MIT"
+    },
+    {
+      "name": "WhisperX",
+      "repository": "https://github.com/m-bain/whisperX",
+      "revision": "8dcdec18039f6f6b10b967c45273f54dd2a1f699",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "OpenTimelineIO",
+      "repository": "https://github.com/AcademySoftwareFoundation/OpenTimelineIO",
+      "revision": "73803eff1dbf86b82bcf97179567a243f4036b90",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "OpenCLIP",
+      "repository": "https://github.com/mlfoundations/open_clip",
+      "revision": "89fb801f1e6087880e951fc8354b8a2077b79c6d",
+      "license": "MIT"
+    },
+    {
+      "name": "SigLIP 2 reference",
+      "repository": "https://github.com/google-research/big_vision",
+      "revision": "0127fb6b337ee2a27bf4e54dea79cff176527356",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "Qdrant Python client",
+      "repository": "https://github.com/qdrant/qdrant-client",
+      "revision": "326adefcc2158121dd0d04877e1a483b5aa2627b",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "SAM 2",
+      "repository": "https://github.com/facebookresearch/sam2",
+      "revision": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "Depth Anything V2",
+      "repository": "https://github.com/DepthAnything/Depth-Anything-V2",
+      "revision": "a561b849ebae10a6f5ef49e26c83cbbcd36c71bf",
+      "license": "Mixed: code and Small weights Apache-2.0; Base/Large/Giant weights CC-BY-NC-4.0"
+    }
+  ]
+}

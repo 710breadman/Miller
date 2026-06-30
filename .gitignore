@@ -1,0 +1,16 @@
+.source-audit/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+config.toml
+data/
+cache/
+projects/
+renders/
+*.log
