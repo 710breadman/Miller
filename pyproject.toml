@@ -21,9 +21,6 @@ dev = [
   "ruff>=0.11",
 ]
 
-[project.scripts]
-miller = "miller.cli:main"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/miller"]
 
@@ -42,7 +39,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 python_version = "3.11"
 strict = true
 packages = ["miller"]
-
-[tool.coverage.run]
-branch = true
-source = ["miller"]
