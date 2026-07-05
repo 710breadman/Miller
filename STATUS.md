@@ -1,39 +1,30 @@
 # Project status
 
-Updated: 2026-06-29
+Updated: 2026-07-05
 
 ## Current
 
-Sprint 0 complete. Roadmap decomposed into small, independently verifiable
-sub-sprints. Active checkpoint: `1.1 — Python package skeleton`. No production
-application code exists yet.
+Sub-sprint `1.1 — Python package skeleton` is complete on this branch. The next
+checkpoint is `1.2 — Core domain schemas`.
 
-## Decisions
+## Completed
 
-- Core owns state and orchestration; no upstream app becomes source of truth.
-- Implement deterministic SQLite stage runner in Sprint 1.
-- Keep FFmpeg as mandatory render backend. Benchmark Revideo later.
-- Wrap WhisperX public Python API behind a process-capable adapter.
-- Adapt BallonsTranslator concepts/interfaces first; GPL code stays external
-  unless project licensing decision explicitly permits reuse.
-- Study StoryToolkitAI concepts only; do not copy GPL code.
-- Use Qdrant Python client behind a vector-store protocol; local mode is
-  acceptable for tests only.
-- Benchmark OpenCLIP and SigLIP 2 on comic-specific labeled data.
-- Keep SAM 2 and Depth Anything V2 optional, selective workers.
-- Use OpenTimelineIO only for optional interchange.
+- `pyproject.toml` with a `src/` package layout
+- Python 3.11+ package metadata
+- Lightweight Pydantic and Pillow core dependencies
+- Ruff, strict Mypy, Pytest, and wheel-build configuration
+- Package version and import smoke test
+- Initial immutable domain records for projects, stages, attempts, artifacts,
+  and events
 
-## Risks
+## Boundary
 
-- Project license remains unset.
-- Comic/model dataset rights require separate review from source-code licenses.
-- RTX 3070 VRAM requires model lifecycle control and low-memory profiles.
-- BallonsTranslator headless extraction may be costly because orchestration is
-  coupled to Qt threads/config.
-- Revideo proof must measure deterministic output, startup cost, memory, and
-  FFmpeg escape hatches.
+CUDA, PyTorch, OCR, WhisperX, retrieval models, Node, and local language models
+are intentionally excluded from the core environment. They will use replaceable
+worker interfaces later.
 
 ## Next
 
-Execute only `1.1 — Python package skeleton`: add packaging/layout/test config;
-verify clean install plus import smoke test. Do not begin schemas or DB.
+Complete `1.2`: add explicit stage transition rules, schema round-trip tests,
+and invalid-state tests. Do not begin SQLite persistence or CLI execution in
+that checkpoint.
