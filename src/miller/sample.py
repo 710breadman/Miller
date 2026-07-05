@@ -1,1 +1,1 @@
-VALUE = 1
+"""Reserved extension point for future Miller adapters."""
