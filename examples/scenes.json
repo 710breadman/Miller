@@ -1,0 +1,22 @@
+{
+  "scenes": [
+    {
+      "id": "scene_01",
+      "image_path": "D:/Comics/derived/example-page.png",
+      "duration_seconds": 5.0,
+      "motion": "slow_push",
+      "focus_x": 0.5,
+      "focus_y": 0.4
+    }
+  ],
+  "narration_path": "D:/Audio/example.wav",
+  "profile": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "codec": "libx264",
+    "crf": 18,
+    "preset": "medium",
+    "threads": 1
+  }
+}

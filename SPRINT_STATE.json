@@ -1,31 +1,49 @@
 {
-  "schema_version": 2,
-  "updated_at": "2026-06-29",
-  "current_sprint": 1,
-  "active_sub_sprint": "1.1",
-  "last_completed_sub_sprint": "0.4",
+  "schema_version": 3,
+  "updated_at": "2026-07-05",
+  "current_sprint": 4,
+  "active_sub_sprint": "4.2",
+  "last_completed_sub_sprint": "3.6",
   "completed_sub_sprints": [
-    "0.1",
-    "0.2",
-    "0.3",
-    "0.4"
+    "0.1", "0.2", "0.3", "0.4",
+    "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7",
+    "2.1", "2.2", "2.3", "2.4", "2.5", "2.6",
+    "3.1", "3.2", "3.3", "3.4", "3.5", "3.6",
+    "4.1"
   ],
-  "blocked_sub_sprints": [],
+  "blocked_sub_sprints": ["4.2", "4.4", "4.5", "7.3", "8.6", "12.3", "13.7"],
+  "blockers": {
+    "4.2": "Requires a user-approved real comic corpus and 100-300 human relevance labels.",
+    "4.4": "Requires the labeled corpus plus a pinned OpenCLIP model on the local GPU.",
+    "4.5": "Requires the labeled corpus plus a pinned SigLIP 2 model on the local GPU.",
+    "7.3": "Requires a separately installed pinned BallonsTranslator checkout and real pages.",
+    "8.6": "Requires Node/Chromium/Revideo and the same real two-minute render fixture.",
+    "12.3": "Requires a local DaVinci Resolve installation for interchange validation.",
+    "13.7": "Requires final Windows/RTX 3070 acceptance and an owner license decision."
+  },
   "milestones": {
     "0": "completed",
-    "1": "in_progress",
-    "2": "pending",
-    "3": "pending",
-    "4": "pending",
-    "5": "pending",
-    "6": "pending",
-    "7": "pending",
-    "8": "pending",
-    "9": "pending",
-    "10": "pending",
-    "11": "pending",
-    "12": "pending",
-    "13": "pending"
+    "1": "completed",
+    "2": "completed",
+    "3": "completed",
+    "4": "in_progress",
+    "5": "implemented_ahead_pending_real_model_validation",
+    "6": "implemented_ahead",
+    "7": "implemented_ahead_pending_external_tool_proof",
+    "8": "implemented_ahead_pending_revideo_comparison",
+    "9": "implemented_ahead",
+    "10": "implemented_ahead",
+    "11": "implemented_ahead_pending_broad_research_provider",
+    "12": "implemented_ahead_pending_resolve_proof",
+    "13": "implemented_ahead_pending_windows_acceptance"
   },
-  "next_task": "Execute only 1.1: create Python package skeleton and verify clean install/import."
+  "completed_proofs": [
+    "manual_ffmpeg_vertical_slice",
+    "no_ai_comic_to_mp4_pipeline",
+    "scene_level_partial_rerender",
+    "revisioned_local_editor",
+    "portable_project_round_trip",
+    "qdrant_contract_local_test"
+  ],
+  "next_task": "On the local machine, create the approved 100-300-query comic evaluation set and run the no-AI acceptance fixture."
 }

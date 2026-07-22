@@ -1,0 +1,2 @@
+param([Parameter(Mandatory)] [string]$JobId,[string]$QueueRoot='V:\AI\Miller\.miller\gemma-queue')
+$p=$null; foreach($s in 'pending','running','completed','failed'){ $x=Join-Path $QueueRoot "$s\$JobId.json"; if(Test-Path $x){$p=$x;$state=$s;break} }; if(-not $p){Write-Output 'status: not_found'; exit 1}; $j=Get-Content -Raw $p|ConvertFrom-Json; Write-Output "status: $state"; $j|ConvertTo-Json -Depth 10

@@ -5,71 +5,59 @@
 Build a local-first automatic YouTube production system that creates comic-first
 videos from scripts, narration, research, and an indexed comic library.
 
+## Ownership and safety
+
+- Miller owns authoritative project, queue, provenance, storyboard, edit, repair,
+  and render state in SQLite.
+- Comic libraries, scripts, narration, music, and user media are read-only inputs.
+- Derived data belongs only in Miller-managed project/cache directories.
+- Never overwrite an existing output or delete a user file.
+- External commands use argument arrays; never construct a shell command from input.
+- Caches and Qdrant are rebuildable and never the sole copy of project state.
+- Every worker result remains a proposal until schema, attempt guard, provenance,
+  file existence, and hashes are validated by core.
+- Keep loops bounded. Default repair limit is two passes.
+
+## Dependency boundaries
+
+- Core must remain usable without CUDA, PyTorch, Node, downloaded models, Ollama,
+  Qdrant service, or OpenTimelineIO.
+- OCR, WhisperX, embedding, inpainting, and LLM environments remain replaceable.
+- Record exact executable, package, model, weight, prompt, and configuration versions.
+- Keep GPL implementations external unless an explicit distribution decision permits
+  otherwise.
+
 ## Source study
 
-Before implementing any significant capability:
+Before implementing a significant external capability:
 
 1. Search this repository for existing work.
-2. Inspect approved upstream projects implementing similar behavior.
-3. Record architecture, interfaces, limits, license, tests, dependencies, and
-   reusable concepts.
-4. Prefer proven code or patterns when they preserve project capability.
-5. Never adopt an upstream limit merely to reduce implementation work.
-6. Integrate through typed, replaceable adapters.
-7. Copy or port code only after explicit license review.
-8. Record exact upstream repository and revision.
-9. Add contract tests for every external integration.
+2. Inspect an approved upstream implementation and its exact revision.
+3. Record interfaces, limits, tests, dependencies, licenses, and reusable concepts.
+4. Prefer a typed adapter or proven design without inheriting an upstream app's state.
+5. Add contract tests and a safe unavailable-tool failure path.
 
-MoneyPrinterTurbo is a major study source, not this application's foundation.
+## Required verification
 
-## Ownership
+```text
+uv sync --frozen --extra dev --extra web --extra export --extra retrieval
+uv run ruff check .
+uv run mypy src
+uv run pytest
+uv build
+```
 
-This repository owns project state, job state, source provenance, script stages,
-comic index, storyboard, scene definitions, repair history, user overrides, and
-render history. External applications never become source of truth.
-
-## Safety
-
-- Treat comic libraries as read-only.
-- Never overwrite narration, scripts, comics, or user media.
-- Store derived assets only in managed project/cache directories.
-- Never delete user files during cleanup.
-- Never run downloaded code without explicit provenance.
-- Never silently ignore failed stages.
-- Never claim success without tests or artifact verification.
-
-## Pipeline
-
-- Every stage has typed input and output.
-- Cache every expensive result by content hash.
-- Make every stage independently rerunnable.
-- Invalidate only dependent stages after input changes.
-- Resume failed projects after restart.
-- Run video projects sequentially in Version 1.
-- Bound all quality and agent loops. Default repair limit: two passes.
-
-## AI
-
-- AI output remains a proposal until validated and parsed.
-- Require structured output.
-- Preserve prompts and model identifiers.
-- Separate evidence from interpretation.
-- Never invent source provenance.
-- Give alternatives for low-confidence visual matches.
-- Do not use autonomous agents for file mutation or render-state control.
+For release checkpoints, extract the package into a clean directory, repeat the
+full gate, install the built wheel in a clean environment, and import `miller`.
 
 ## Codex procedure
 
 1. Read `AGENTS.md`, `STATUS.md`, and `SPRINT_STATE.json`.
-2. Read only `active_sub_sprint` in `SPRINTS.md` plus directly required files.
-3. Treat `active_sub_sprint` as hard scope. Never batch adjacent sub-sprints.
-4. Inspect existing implementation.
-5. Implement only active sub-sprint outcome.
-6. Run its gate plus relevant regression tests; inspect generated artifacts.
-7. Update `STATUS.md` with result, decisions, failures, and exact next step.
-8. Mark only active sub-sprint complete in `SPRINT_STATE.json`; advance once.
-9. Stop at a stable, reviewable checkpoint.
-
-If active sub-sprint proves too large for one focused run, split it before
-implementation using `docs/SUB_SPRINT_TEMPLATE.md`. Preserve original outcome
-and order. Never silently widen scope.
+2. Respect the active canonical sub-sprint and recorded hardware/data blockers.
+3. Inspect existing code and tests before changing behavior.
+4. Keep source inputs untouched and preserve backward-compatible persisted data.
+5. Implement a bounded, reviewable outcome.
+6. Run the full gate and inspect generated media/manifests.
+7. Update status, state, decisions, and exact local validation still required.
+8. Stop at a stable checkpoint; never claim a real-model or visual gate passed
+   without its actual evidence.
