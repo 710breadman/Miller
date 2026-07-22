@@ -1,37 +1,43 @@
-# Miller complete local handoff
+# Miller handoff
 
-This release is designed to be applied to `D:\_Codex\Miller`.
+Status: **definitive planning package prepared; implementation not advanced**  
+Planning revision: `2026-07-21-definitive`  
+Active sprint: `ENV-001`
 
-## Fastest path
+## What was completed
 
-Double-click `Install-Miller.cmd`, run `.\Install-Miller.cmd` from PowerShell, or run:
+- repository and evidence-level assessment;
+- preserved architecture direction;
+- 13-layer roadmap and critical path;
+- 55 permanent Gemma-sized sprint cards;
+- machine-readable state and blocker fallbacks;
+- external research/project decisions;
+- board reviews and final architecture council;
+- context/agent protocols;
+- evaluation, test, risk, security, release, and owner-decision controls;
+- first local Windows acceptance procedure;
+- planning validator.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\APPLY_TO_D_CODEX_MILLER.ps1
-```
+## What was not done
 
-The installer backs up existing work outside the Git worktree, preserves dirty Git
-changes, creates a new branch when applicable, copies without deleting destination
-files, installs locked dependency groups from public PyPI, runs 64 tests plus
-lint/type/build checks, initializes safe local settings, writes a capability report,
-and creates a desktop shortcut.
+- no product code was rewritten;
+- no Windows/RTX 3070 tests were run in this environment;
+- no real comics, narration, model workers, or subjective video gates were tested;
+- no private corpus was accessed;
+- no license decision was made for the owner.
 
-If installation previously stopped at dependency download, run
-`Repair-Miller-Install.cmd` from this release to resume in place.
+## Exact next action
 
-## Launch
+On the owner Windows checkout, run `ENV-001` using `docs/LOCAL_ACCEPTANCE_TEST.md`: preserve Git state, confirm actual paths, run the locked quality gate, save `miller capabilities`, `nvidia-smi`, FFmpeg/Tesseract versions, and record failures.
 
-```powershell
-D:\_Codex\Miller\RUN_MILLER.ps1
-```
+## Do not redo
 
-## First video
+Do not re-audit the repository or redesign the core before `ENV-001`. Use `CURRENT_STATE.md` as the accepted inventory and open a correction card only if local evidence contradicts it.
 
-Use `RUN_BASELINE.ps1` or the `baseline-video` CLI command. Start with a short
-comic and narration and add `-NoOcr` for the first media-only acceptance run.
+## Safe fallback cards
 
-## Honest limits
+`INV-003`, `DOC-001`, `ARC-001`, `ARC-003`, `SEC-001`, `SEC-002`, and `QAE-001` can proceed when their prerequisites are satisfied without the private fixture.
 
-Real OpenCLIP/SigLIP, WhisperX, BallonsTranslator, Revideo, Resolve, RTX 3070,
-and subjective visual gates require the local machine and real approved media.
-The project license also remains an owner decision.
+## Context startup
+
+Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ENV-001` card, this handoff, and Git status. Do not load all sprint cards into Gemma context.

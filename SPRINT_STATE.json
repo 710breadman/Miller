@@ -1,49 +1,612 @@
 {
-  "schema_version": 3,
-  "updated_at": "2026-07-05",
-  "current_sprint": 4,
-  "active_sub_sprint": "4.2",
-  "last_completed_sub_sprint": "3.6",
-  "completed_sub_sprints": [
-    "0.1", "0.2", "0.3", "0.4",
-    "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7",
-    "2.1", "2.2", "2.3", "2.4", "2.5", "2.6",
-    "3.1", "3.2", "3.3", "3.4", "3.5", "3.6",
-    "4.1"
+  "schema_version": 2,
+  "planning_revision": "2026-07-21-definitive",
+  "updated_at": "2026-07-21",
+  "active_sprint": "ENV-001",
+  "completed_sprints": [
+    "INV-001",
+    "INV-002",
+    "DOC-002"
   ],
-  "blocked_sub_sprints": ["4.2", "4.4", "4.5", "7.3", "8.6", "12.3", "13.7"],
-  "blockers": {
-    "4.2": "Requires a user-approved real comic corpus and 100-300 human relevance labels.",
-    "4.4": "Requires the labeled corpus plus a pinned OpenCLIP model on the local GPU.",
-    "4.5": "Requires the labeled corpus plus a pinned SigLIP 2 model on the local GPU.",
-    "7.3": "Requires a separately installed pinned BallonsTranslator checkout and real pages.",
-    "8.6": "Requires Node/Chromium/Revideo and the same real two-minute render fixture.",
-    "12.3": "Requires a local DaVinci Resolve installation for interchange validation.",
-    "13.7": "Requires final Windows/RTX 3070 acceptance and an owner license decision."
+  "accepted_evidence": {
+    "repository_inventory": "E2",
+    "core_contract_suite": "E2",
+    "synthetic_no_ai_mp4": "E2",
+    "windows_target": "E0",
+    "real_comic_analysis": "E0",
+    "retrieval_winner": "E0",
+    "human_video_acceptance": "E0",
+    "clean_machine_release": "E0"
   },
-  "milestones": {
-    "0": "completed",
-    "1": "completed",
-    "2": "completed",
-    "3": "completed",
-    "4": "in_progress",
-    "5": "implemented_ahead_pending_real_model_validation",
-    "6": "implemented_ahead",
-    "7": "implemented_ahead_pending_external_tool_proof",
-    "8": "implemented_ahead_pending_revideo_comparison",
-    "9": "implemented_ahead",
-    "10": "implemented_ahead",
-    "11": "implemented_ahead_pending_broad_research_provider",
-    "12": "implemented_ahead_pending_resolve_proof",
-    "13": "implemented_ahead_pending_windows_acceptance"
+  "blocked_sprints": {
+    "ENV-002": "Create a private manifest for a small varied comic/script/narration fixture without committing copyrighted media.",
+    "ENV-003": "Produce and manually inspect no-OCR and OCR baseline videos; preserve hashes, probes, timing, and warnings.",
+    "ENV-004": "Exercise interruption, restart, long Windows paths, network/drive behavior, file locks, low disk, and a larger source.",
+    "ANL-001": "Define private corpus manifests, stable page/panel/region identities, versioned observations, annotations, and non-redistribution rules.",
+    "ANL-002": "Benchmark current gutter baseline and selected learned/external detectors on stratified pages with accuracy and hardware reports.",
+    "ANL-003": "Implement/evaluate page and panel reading order including manga RTL, captions, splashes, nested and irregular layouts.",
+    "ANL-004": "Benchmark preprocessing and Tesseract/manga-ocr/optional PaddleOCR by language, typography, runtime, and retrieval value.",
+    "ANL-006": "Measure semantic accuracy, unsupported assertions, retrieval lift, latency, VRAM, and unload; select or reject candidates.",
+    "ANL-007": "Represent character occurrences, human anchors, clustering uncertainty, and within-series identity without silent merges.",
+    "ANL-008": "Represent adjacent-panel/page relations, speakers, temporal/location continuity, and scene boundaries with evidence.",
+    "RET-002": "Label and validate a stratified private query set with held-out subset and no locator leakage.",
+    "RET-003": "Run lexical page/panel variants and publish per-query metrics, latency, index config, and failure buckets.",
+    "RET-005": "Run all eligible candidates on the same corpus/labels and record metrics, index time/size, latency, RAM/VRAM, and terms.",
+    "RET-006": "Compare Qdrant service/local and sqlite-vec for build/rebuild, filtering, portability, concurrency, corruption, and packaging.",
+    "RET-007": "Benchmark fusion/calibration/rerank; write authoritative winner ADR and fallback policy.",
+    "AUD-002": "Evaluate word timing, mismatch detection, drift, silence, retakes, fallback tier, latency, and VRAM on owner narration.",
+    "STO-002": "Produce traceable top candidates and alternatives for each beat across pages/panels with filters and cleanup cost.",
+    "STO-003": "Optimize all scene choices jointly for relevance, continuity, reuse, quality, pacing, era, and owner locks.",
+    "STO-004": "Generate safe focus/crop/motion/transition plans from panel geometry, subjects, text, duration, and emotional pacing.",
+    "STO-005": "Compare baseline and revised storyboards on golden projects; tune only from recorded owner/editor feedback.",
+    "VID-001": "Select clean alternatives/crops before generating masks; preserve text geometry and source provenance.",
+    "VID-002": "Validate one pinned external cleanup worker, quality/failure classes, license boundary, and deterministic fallback.",
+    "VID-004": "Prove edits invalidate/rerender only affected scenes/boundaries and retain unchanged artifact hashes.",
+    "VID-005": "Compare quality, speed, size, determinism, power/VRAM, and failure behavior on the same fixtures.",
+    "VID-006": "Compare Revideo and native FFmpeg for visible benefit, preview, timing, memory, startup, cancellation, packaging, and complexity.",
+    "UX-002": "Implement guided project creation, source validation, queue, progress, capability/degraded states, retry, and logs.",
+    "UX-003": "Implement thumbnails, alternatives, locks, crop/focus/motion controls, timeline, revision conflict, history, and accessibility.",
+    "UX-004": "Add scene/video proxies, comparison, targeted render, cancellation, restart, and exact recovery actions.",
+    "QAE-002": "Create short, representative, and hard-case golden project manifests and baseline reports without committing private media.",
+    "QAE-003": "Expose evidence level, latest reports, regressions, blockers, and run coverage/feasibility/context/product/risk/simplification reviews.",
+    "REL-001": "Install on clean Windows, create/render/recover/export a project, and verify path/config/update/repair boundaries.",
+    "REL-002": "Freeze evidence, license/notices/SBOM, migration/rollback, release manifest, hashes, documentation, and owner acceptance.",
+    "ADV-001": "Benchmark cross-page/era/costume character re-ID and human correction; adopt only with material storyboard/retrieval benefit.",
+    "ADV-002": "Benchmark SAM/depth-style advanced motion on selected scenes with artifact and hardware kill criteria.",
+    "ADV-003": "Open exported timeline/media in a supported NLE, compare frame timing, edits, transitions, and relink portability."
   },
-  "completed_proofs": [
-    "manual_ffmpeg_vertical_slice",
-    "no_ai_comic_to_mp4_pipeline",
-    "scene_level_partial_rerender",
-    "revisioned_local_editor",
-    "portable_project_round_trip",
-    "qdrant_contract_local_test"
+  "next_unblocked": [
+    "ENV-001",
+    "INV-003",
+    "DOC-001",
+    "ARC-001",
+    "ARC-003",
+    "SEC-001",
+    "SEC-002",
+    "QAE-001"
   ],
-  "next_task": "On the local machine, create the approved 100-300-query comic evaluation set and run the no-AI acceptance fixture."
+  "legacy_state": {
+    "source": "SPRINT_STATE.json before definitive plan",
+    "active_sub_sprint": "4.2",
+    "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
+  },
+  "session": {
+    "status": "planning_package_prepared",
+    "last_safe_checkpoint": "Definitive control documents generated and validated locally.",
+    "next_exact_action": "Run ENV-001 using docs/LOCAL_ACCEPTANCE_TEST.md on the owner Windows checkout.",
+    "handoff": "HANDOFF.md"
+  },
+  "sprints": [
+    {
+      "id": "INV-001",
+      "title": "Repository inventory and evidence map",
+      "roadmap": "R1",
+      "status": "completed",
+      "dependencies": []
+    },
+    {
+      "id": "INV-002",
+      "title": "Evidence taxonomy and completion rules",
+      "roadmap": "R1",
+      "status": "completed",
+      "dependencies": [
+        "INV-001"
+      ]
+    },
+    {
+      "id": "INV-003",
+      "title": "Dependency, data, and license audit",
+      "roadmap": "R1",
+      "status": "ready",
+      "dependencies": [
+        "INV-001"
+      ]
+    },
+    {
+      "id": "DOC-001",
+      "title": "Reconcile product vision and stale claims",
+      "roadmap": "R1",
+      "status": "ready",
+      "dependencies": [
+        "INV-001",
+        "INV-002"
+      ]
+    },
+    {
+      "id": "DOC-002",
+      "title": "Canonical project-control documents",
+      "roadmap": "R1",
+      "status": "completed",
+      "dependencies": [
+        "INV-001",
+        "INV-002"
+      ]
+    },
+    {
+      "id": "ENV-001",
+      "title": "Windows checkout and capability proof",
+      "roadmap": "R2",
+      "status": "active",
+      "dependencies": [
+        "DOC-002"
+      ]
+    },
+    {
+      "id": "ENV-002",
+      "title": "Approved local acceptance fixture",
+      "roadmap": "R2",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-001"
+      ]
+    },
+    {
+      "id": "ENV-003",
+      "title": "Real no-AI baseline acceptance",
+      "roadmap": "R2",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-002"
+      ]
+    },
+    {
+      "id": "ENV-004",
+      "title": "Restart, long-path, and large-source acceptance",
+      "roadmap": "R2",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-003"
+      ]
+    },
+    {
+      "id": "ARC-001",
+      "title": "Ordered database migrations and restore",
+      "roadmap": "R3",
+      "status": "ready",
+      "dependencies": [
+        "DOC-002"
+      ]
+    },
+    {
+      "id": "ARC-002",
+      "title": "Durable baseline DAG integration",
+      "roadmap": "R3",
+      "status": "ready",
+      "dependencies": [
+        "ARC-001",
+        "ENV-003"
+      ]
+    },
+    {
+      "id": "ARC-003",
+      "title": "Worker protocol, lease, and resource hardening",
+      "roadmap": "R3",
+      "status": "ready",
+      "dependencies": [
+        "ARC-001"
+      ]
+    },
+    {
+      "id": "ARC-004",
+      "title": "Atomic output and artifact audit",
+      "roadmap": "R3",
+      "status": "ready",
+      "dependencies": [
+        "ARC-002"
+      ]
+    },
+    {
+      "id": "ANL-001",
+      "title": "Corpus, annotation, and observation schema",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-002",
+        "ARC-001"
+      ]
+    },
+    {
+      "id": "ANL-002",
+      "title": "Panel, balloon, and text detector benchmark",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-001"
+      ]
+    },
+    {
+      "id": "ANL-003",
+      "title": "Reading-order detection and evaluation",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-001",
+        "ANL-002"
+      ]
+    },
+    {
+      "id": "ANL-004",
+      "title": "OCR preprocessing and engine selection",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-001",
+        "ANL-002"
+      ]
+    },
+    {
+      "id": "ANL-005",
+      "title": "Structured VLM worker implementation",
+      "roadmap": "R4",
+      "status": "ready",
+      "dependencies": [
+        "ARC-003",
+        "ANL-001"
+      ]
+    },
+    {
+      "id": "ANL-006",
+      "title": "VLM comic benchmark and selection",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-005",
+        "ANL-001"
+      ]
+    },
+    {
+      "id": "ANL-007",
+      "title": "Character occurrence and identity model",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-002",
+        "ANL-006"
+      ]
+    },
+    {
+      "id": "ANL-008",
+      "title": "Scene and sequence representation",
+      "roadmap": "R4",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-003",
+        "ANL-006"
+      ]
+    },
+    {
+      "id": "RET-001",
+      "title": "Human relevance label tool and schema",
+      "roadmap": "R5",
+      "status": "ready",
+      "dependencies": [
+        "ANL-001"
+      ]
+    },
+    {
+      "id": "RET-002",
+      "title": "Create 100\u2013300 query evaluation set",
+      "roadmap": "R5",
+      "status": "blocked",
+      "dependencies": [
+        "RET-001",
+        "ENV-002"
+      ]
+    },
+    {
+      "id": "RET-003",
+      "title": "BM25 and metadata baseline report",
+      "roadmap": "R5",
+      "status": "blocked",
+      "dependencies": [
+        "RET-002",
+        "ANL-004"
+      ]
+    },
+    {
+      "id": "RET-004",
+      "title": "Embedding worker candidate implementations",
+      "roadmap": "R5",
+      "status": "ready",
+      "dependencies": [
+        "ARC-003",
+        "ANL-001"
+      ]
+    },
+    {
+      "id": "RET-005",
+      "title": "Embedding retrieval benchmark",
+      "roadmap": "R5",
+      "status": "blocked",
+      "dependencies": [
+        "RET-002",
+        "RET-004"
+      ]
+    },
+    {
+      "id": "RET-006",
+      "title": "Vector backend operational benchmark",
+      "roadmap": "R5",
+      "status": "blocked",
+      "dependencies": [
+        "RET-004",
+        "ENV-001"
+      ]
+    },
+    {
+      "id": "RET-007",
+      "title": "Fusion, reranking, and retrieval winner",
+      "roadmap": "R5",
+      "status": "blocked",
+      "dependencies": [
+        "RET-003",
+        "RET-005",
+        "RET-006"
+      ]
+    },
+    {
+      "id": "AUD-001",
+      "title": "Pinned alignment worker environments",
+      "roadmap": "R7",
+      "status": "ready",
+      "dependencies": [
+        "ARC-003",
+        "ENV-001"
+      ]
+    },
+    {
+      "id": "AUD-002",
+      "title": "Real narration alignment acceptance",
+      "roadmap": "R7",
+      "status": "blocked",
+      "dependencies": [
+        "AUD-001",
+        "ENV-002"
+      ]
+    },
+    {
+      "id": "STO-001",
+      "title": "Structured beat intent and uncertainty",
+      "roadmap": "R6",
+      "status": "ready",
+      "dependencies": [
+        "ARC-002"
+      ]
+    },
+    {
+      "id": "STO-002",
+      "title": "Mixed page/panel candidate lattice",
+      "roadmap": "R6",
+      "status": "blocked",
+      "dependencies": [
+        "STO-001",
+        "RET-007"
+      ]
+    },
+    {
+      "id": "STO-003",
+      "title": "Global sequence optimizer",
+      "roadmap": "R6",
+      "status": "blocked",
+      "dependencies": [
+        "STO-002"
+      ]
+    },
+    {
+      "id": "STO-004",
+      "title": "Composition-aware crop and motion plan",
+      "roadmap": "R6",
+      "status": "blocked",
+      "dependencies": [
+        "STO-003",
+        "ANL-002"
+      ]
+    },
+    {
+      "id": "STO-005",
+      "title": "Narrative and editorial acceptance",
+      "roadmap": "R6",
+      "status": "blocked",
+      "dependencies": [
+        "STO-004",
+        "QAE-001"
+      ]
+    },
+    {
+      "id": "VID-001",
+      "title": "Text-free alternate, crop, and mask policy",
+      "roadmap": "R7",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-002",
+        "STO-004"
+      ]
+    },
+    {
+      "id": "VID-002",
+      "title": "External inpainting proof and fallback",
+      "roadmap": "R7",
+      "status": "blocked",
+      "dependencies": [
+        "VID-001",
+        "ARC-003"
+      ]
+    },
+    {
+      "id": "VID-003",
+      "title": "Render progress, cancellation, and promotion",
+      "roadmap": "R7",
+      "status": "ready",
+      "dependencies": [
+        "ARC-004"
+      ]
+    },
+    {
+      "id": "VID-004",
+      "title": "Scene cache and partial rerender acceptance",
+      "roadmap": "R7",
+      "status": "blocked",
+      "dependencies": [
+        "VID-003",
+        "STO-004"
+      ]
+    },
+    {
+      "id": "VID-005",
+      "title": "CPU and NVENC target benchmark",
+      "roadmap": "R9",
+      "status": "blocked",
+      "dependencies": [
+        "VID-003",
+        "ENV-002"
+      ]
+    },
+    {
+      "id": "VID-006",
+      "title": "Revideo same-fixture comparison",
+      "roadmap": "R13",
+      "status": "blocked",
+      "dependencies": [
+        "VID-004"
+      ]
+    },
+    {
+      "id": "UX-001",
+      "title": "Product information architecture and API map",
+      "roadmap": "R8",
+      "status": "ready",
+      "dependencies": [
+        "DOC-001",
+        "ARC-002"
+      ]
+    },
+    {
+      "id": "UX-002",
+      "title": "Project, import, queue, and progress UI",
+      "roadmap": "R8",
+      "status": "blocked",
+      "dependencies": [
+        "UX-001",
+        "ARC-003"
+      ]
+    },
+    {
+      "id": "UX-003",
+      "title": "Visual storyboard and scene editor",
+      "roadmap": "R8",
+      "status": "blocked",
+      "dependencies": [
+        "UX-002",
+        "STO-004"
+      ]
+    },
+    {
+      "id": "UX-004",
+      "title": "Preview, partial rerender, and recovery UX",
+      "roadmap": "R8",
+      "status": "blocked",
+      "dependencies": [
+        "UX-003",
+        "VID-004"
+      ]
+    },
+    {
+      "id": "QAE-001",
+      "title": "Human quality rubric and acceptance records",
+      "roadmap": "R11",
+      "status": "ready",
+      "dependencies": [
+        "DOC-002"
+      ]
+    },
+    {
+      "id": "QAE-002",
+      "title": "Golden projects and regression suite",
+      "roadmap": "R11",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-003",
+        "QAE-001"
+      ]
+    },
+    {
+      "id": "QAE-003",
+      "title": "Evidence dashboard and final repeated reviews",
+      "roadmap": "R11",
+      "status": "blocked",
+      "dependencies": [
+        "QAE-002"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "title": "Archive, file, API, and worker security tests",
+      "roadmap": "R10",
+      "status": "ready",
+      "dependencies": [
+        "ARC-003"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "title": "Dependency, model, data, SBOM, and license review",
+      "roadmap": "R12",
+      "status": "ready",
+      "dependencies": [
+        "INV-003"
+      ]
+    },
+    {
+      "id": "REL-001",
+      "title": "Clean Windows installation and portability",
+      "roadmap": "R12",
+      "status": "blocked",
+      "dependencies": [
+        "ENV-004",
+        "SEC-001",
+        "SEC-002",
+        "VID-004",
+        "UX-004"
+      ]
+    },
+    {
+      "id": "REL-002",
+      "title": "Polished v1 release candidate",
+      "roadmap": "R12",
+      "status": "blocked",
+      "dependencies": [
+        "REL-001",
+        "QAE-003"
+      ]
+    },
+    {
+      "id": "ADV-001",
+      "title": "Advanced character re-identification",
+      "roadmap": "R13",
+      "status": "blocked",
+      "dependencies": [
+        "ANL-007",
+        "QAE-002"
+      ]
+    },
+    {
+      "id": "ADV-002",
+      "title": "Selective masks and depth parallax",
+      "roadmap": "R13",
+      "status": "blocked",
+      "dependencies": [
+        "VID-004",
+        "QAE-001"
+      ]
+    },
+    {
+      "id": "ADV-003",
+      "title": "OTIO and Resolve interchange proof",
+      "roadmap": "R13",
+      "status": "blocked",
+      "dependencies": [
+        "REL-001"
+      ]
+    }
+  ]
 }
