@@ -1,11 +1,10 @@
-"""Verify Sprint 0 audit artifacts without third-party dependencies."""
+"""Verify immutable Sprint 0 audit artifacts without third-party dependencies."""
 
 from __future__ import annotations
 
 import json
 import re
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
@@ -65,18 +64,15 @@ def main() -> int:
         require(decision in reuse_text, f"decision vocabulary missing: {decision}")
 
     sprint_state = json.loads((ROOT / "SPRINT_STATE.json").read_text(encoding="utf-8"))
-    require(
-        sprint_state["milestones"]["0"] == "completed",
-        "Sprint 0 is not completed",
-    )
+    require(sprint_state["milestones"]["0"] == "completed", "Sprint 0 is not completed")
     require(
         sprint_state["completed_sub_sprints"][:4] == ["0.1", "0.2", "0.3", "0.4"],
         "Sprint 0 sub-sprints are not completed",
     )
-    require(sprint_state["current_sprint"] == 1, "next sprint is not Sprint 1")
+    require(sprint_state["current_sprint"] >= 1, "project did not advance beyond Sprint 0")
     require(
-        sprint_state["active_sub_sprint"] == "1.1",
-        "active sub-sprint is not 1.1",
+        not str(sprint_state["active_sub_sprint"]).startswith("0."),
+        "active sub-sprint unexpectedly returned to Sprint 0",
     )
 
     print(f"Sprint 0 verified: {len(REQUIRED_DOCS)} docs, {len(repositories)} pins")

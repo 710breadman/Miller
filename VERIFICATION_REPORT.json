@@ -1,0 +1,39 @@
+{
+  "not_validated_here": [
+    "PowerShell execution",
+    "D:\\_Codex\\Miller filesystem",
+    "Windows long paths and junctions",
+    "RTX 3070 model performance",
+    "real OpenCLIP, SigLIP 2, WhisperX, BallonsTranslator, Revideo, and Resolve runs",
+    "subjective visual and audio acceptance"
+  ],
+  "package": "miller-video",
+  "quality_gate": {
+    "clean_wheel_import": "passed",
+    "dependency_sync": "passed",
+    "json_toml_validation": "passed",
+    "mypy_strict": "passed across 82 source files",
+    "optional_dependency_boundary": "passed",
+    "packaged_archive_manifest": "passed",
+    "packaged_cli_baseline": "passed: H.264 video + AAC audio, 1.5 seconds",
+    "packaged_cli_output_sha256": "c414980f06865a54503290c4b53220679fb773ff7b2954cfbfafc431f2b40a51",
+    "pytest": "64 passed",
+    "python_compileall": "passed",
+    "ruff": "passed",
+    "shell_script_syntax": "passed",
+    "source_distribution": "built",
+    "wheel": "built"
+  },
+  "release_date": "2026-07-05",
+  "result": "passed",
+  "verification_environment": {
+    "ffmpeg": "7.1.3",
+    "gpu": "not available",
+    "ollama": "not available",
+    "os": "Linux container",
+    "python": "3.13.5",
+    "qdrant_service": "not running",
+    "tesseract": "5.5.0"
+  },
+  "version": "0.1.0"
+}

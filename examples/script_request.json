@@ -1,0 +1,28 @@
+{
+  "briefing": "Explain why the hero returns when the city needs them.",
+  "ledger": {
+    "sources": [
+      {
+        "id": "source_example",
+        "kind": "user",
+        "title": "Approved notes",
+        "locator": "notes/example.md",
+        "excerpt": "The hero leaves, the city deteriorates, and responsibility pulls them back.",
+        "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ],
+    "claims": [
+      {
+        "id": "claim_return",
+        "statement": "Responsibility pulls the hero back after conditions worsen.",
+        "source_ids": ["source_example"],
+        "support": "strong",
+        "confidence": 0.95,
+        "used_in_sections": []
+      }
+    ]
+  },
+  "selected_frame_id": null,
+  "style": "video essay",
+  "target_words": 1200
+}
