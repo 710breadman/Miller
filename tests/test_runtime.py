@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from miller.runtime import (
@@ -41,8 +42,8 @@ def test_cache_prune_is_dry_run_by_default_and_stays_managed(tmp_path: Path) -> 
     new = cache / "new.bin"
     old.write_bytes(b"a" * 10)
     new.write_bytes(b"b" * 20)
-    old.touch()
-    new.touch()
+    os.utime(old, (100, 100))
+    os.utime(new, (200, 200))
 
     manager = CacheManager(workspace)
     plan = manager.prune(20)
