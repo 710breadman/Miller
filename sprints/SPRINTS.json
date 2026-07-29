@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "title": "Miller active canonical sprint",
+  "source_documents": [
+    "SPRINTS.md",
+    "SPRINT_STATE.json"
+  ],
+  "phases": [
+    {
+      "id": "R1",
+      "title": "Planning and evidence control"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "INV-001",
+      "title": "Repository inventory and evidence map",
+      "objective": "Inventory repository state and map claims to accepted evidence.",
+      "phase": "R1",
+      "status": "completed",
+      "dependencies": [],
+      "evidence": [
+        "SPRINT_STATE.json marks INV-001 completed."
+      ]
+    },
+    {
+      "id": "INV-002",
+      "title": "Evidence taxonomy and completion rules",
+      "objective": "Define evidence levels and completion rules used by canonical checkpoints.",
+      "phase": "R1",
+      "status": "completed",
+      "dependencies": [
+        "INV-001"
+      ],
+      "evidence": [
+        "SPRINT_STATE.json marks INV-002 completed."
+      ]
+    },
+    {
+      "id": "DOC-001",
+      "title": "Reconcile product vision and stale claims",
+      "objective": "Reconcile product vision, roadmap, status, and documentation so claims match current accepted evidence without advancing blocked checkpoints.",
+      "phase": "R1",
+      "status": "completed",
+      "dependencies": [
+        "INV-001",
+        "INV-002"
+      ],
+      "acceptance_criteria": [
+        "One bounded outcome has explicit inputs and outputs.",
+        "Relevant tests and the full quality gate pass.",
+        "Generated artifacts and manifests are inspected.",
+        "Sources remain unchanged and managed outputs pass integrity checks.",
+        "Decisions, failures, versions, and remaining real-world validation are recorded.",
+        "Only the active canonical checkpoint advances.",
+        "README, product specification, project charter, implementation plan, status, handoff, and sprint state contain no contradictory completion claims."
+      ],
+      "expected_files": [
+        "README.md",
+        "PROJECT_CHARTER.md",
+        "CURRENT_STATE.md",
+        "STATUS.md",
+        "HANDOFF.md",
+        "SPRINTS.md",
+        "SPRINT_STATE.json",
+        "docs/PRODUCT_SPEC.md",
+        "docs/IMPLEMENTATION_PLAN.md"
+      ]
+    },
+    {
+      "id": "DOC-002",
+      "title": "Canonical project-control documents",
+      "objective": "Maintain canonical planning and control documents.",
+      "phase": "R1",
+      "status": "completed",
+      "dependencies": [
+        "INV-001",
+        "INV-002"
+      ],
+      "evidence": [
+        "SPRINT_STATE.json marks DOC-002 completed."
+      ]
+    },
+    {
+      "id": "ARC-001",
+      "title": "Ordered database migrations and restore",
+      "objective": "Replace implicit schema upgrades with tested ordered migrations, preflight backup, integrity checks, and restore drill.",
+      "phase": "R3",
+      "status": "active",
+      "dependencies": [
+        "DOC-002"
+      ],
+      "acceptance_criteria": [
+        "Ordered migrations replace implicit schema upgrades.",
+        "Preflight backup occurs before migration.",
+        "Integrity checks detect invalid databases.",
+        "Restore drill proves recovery from the preflight backup.",
+        "Focused and full quality gates pass.",
+        "Independent reviewer accepts implementation evidence."
+      ],
+      "expected_files": [
+        "src/miller/db.py",
+        "src/miller/models.py",
+        "src/miller/transitions.py",
+        "tests/test_db.py",
+        "docs/sprints/ARC-001.md"
+      ]
+    }
+  ]
+}
