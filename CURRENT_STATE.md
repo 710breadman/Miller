@@ -101,7 +101,7 @@ FFmpeg render → quality checks → bounded repair
 | Artifact store | immutable content-addressed outputs and hashes | implemented foundation | `artifacts.py`, `runtime/cache.py` | E2 cache/invalidation tests | large-cache performance and Windows path proof | `ENV-004`, `VID-004` |
 | Pipeline runner | deterministic DAG, cache, cancellation, retries | implemented but not used by baseline | `runner.py` | E2 isolated DAG tests | baseline composition and real restart | `ARC-002` |
 | Queue | persistent bounded work | implemented foundation | `workers.py`, DB queue tables | E3 versioned protocol, lease/heartbeat, stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`, local Windows run) | priority scheduling across a single lease-holding item, real external-worker adapter integration | `ANL-005`, `RET-004`, `AUD-001` |
-| Folder/CBZ ingest | safe read-only source inventory | strong implementation | `comics/` | E2 archive safety and changed-source tests | CBR/PDF, malformed real archives, double-page semantics | `ENV-002`, `SEC-001` |
+| Folder/CBZ ingest | safe read-only source inventory | strong implementation | `comics/` | E3 archive/path/image adversarial fuzzing (`SEC-001`, local Windows run) plus prior changed-source tests | CBR/PDF (real CBR files exist in the owner's library per `ENV-002`), double-page semantics | `ENV-002` |
 | Page derivation | managed source copies/crops/masks | implemented contracts | `derived/` | E2 deterministic output tests | production crop policy, panel asset identity across reanalysis | `ANL-001` |
 | Panel detection | identify usable panels/regions | heuristic only | `analysis/panels.py` | E2 synthetic white-gutter cases | irregular/borderless panels, manga, splashes, spreads | `ANL-002` |
 | Text/balloon detection | locate lettering and removable regions | scaffold/heuristic | `analysis/ocr.py`, `masks.py` | E2 geometry contracts | comic-trained detector and mask accuracy | `ANL-002`, `VID-001` |
@@ -178,6 +178,21 @@ Pytest suite (87 tests, 16 new), and the wheel/sdist build all passed
 locally. The existing external worker adapters (`audio/whisper_worker.py`,
 `retrieval/embedding_worker.py`) do not yet route through this protocol --
 that integration is `ANL-005`/`AUD-001`/`RET-004` work.
+
+`SEC-001` reached E3 on this local Windows machine: 34 new adversarial tests in `tests/test_security.py` fuzz CBZ
+archive/path/image inputs (path traversal, absolute paths, Windows drive-letter paths, duplicate case-insensitive
+paths, encrypted entries via real ZIP-header byte patching, oversized/zero-byte entries, total-size limits, a
+zip-bomb-style compression ratio, entry-count limits, corrupted images, invalid archives), verify the localhost-only
+boundary at both the CLI argparse layer (`--host` `choices`) and the `MillerSettings` validator layer, confirm
+`attempt_guard`/`lease_token` secrets are never written to project logs or DB events, exercise missing-binary and
+malformed-JSON failure surfaces for both external worker adapters, and statically confirm no `shell=True`/`os.system`
+usage anywhere in the core package. Found and fixed two real issues along the way: an XSS-prone unescaped `scene.id`
+interpolation into `onclick`/`onchange` JS-attribute strings in `web/app.py`'s embedded editor, and a missing
+structured-error-message extraction in `retrieval/embedding_worker.py` (now matches the pattern `whisper_worker.py`
+gained in `AUD-001`). Also discovered, and documented in the tests themselves, that Python's `zipfile` module
+normalizes a literal backslash in a member name to a forward slash on *read* regardless of raw header bytes, meaning
+Miller's own `"\\" in name` rejection in `comics/cbz.py` can never actually be reached via any `ZipFile`-mediated
+read — defensive dead code in practice, kept in case that platform/version behavior ever changes.
 
 ### Partially implemented
 

@@ -244,12 +244,12 @@ function render() {
       <div>
         <div class="narration">${escapeHtml(scene.narration)}</div>
         <div>Primary: <span class="asset">${escapeHtml(scene.primary_asset)}</span></div>
-        <div class="alternatives">${scene.alternatives.map(a => `<button ${scene.locked?'disabled':''} onclick="command('replace-asset','${scene.id}',{asset_id:'${escapeHtml(a)}'})">Use ${escapeHtml(a)}</button>`).join("")}</div>
+        <div class="alternatives">${scene.alternatives.map(a => `<button ${scene.locked?'disabled':''} onclick="command('replace-asset','${escapeHtml(scene.id)}',{asset_id:'${escapeHtml(a)}'})">Use ${escapeHtml(a)}</button>`).join("")}</div>
         <div class="controls">
-          <select ${scene.locked?'disabled':''} onchange="command('motion','${scene.id}',{preset:this.value})">${options(motions, scene.camera.preset)}</select>
-          <select ${scene.locked?'disabled':''} onchange="command('transition','${scene.id}',{transition:this.value})">${options(transitions, scene.transition)}</select>
-          <input ${scene.locked?'disabled':''} value="${escapeHtml(scene.music_state)}" aria-label="music state" onchange="command('music','${scene.id}',{music_state:this.value})">
-          <button onclick="command('lock','${scene.id}',{locked:${!scene.locked}})">${scene.locked?'Unlock':'Lock'}</button>
+          <select ${scene.locked?'disabled':''} onchange="command('motion','${escapeHtml(scene.id)}',{preset:this.value})">${options(motions, scene.camera.preset)}</select>
+          <select ${scene.locked?'disabled':''} onchange="command('transition','${escapeHtml(scene.id)}',{transition:this.value})">${options(transitions, scene.transition)}</select>
+          <input ${scene.locked?'disabled':''} value="${escapeHtml(scene.music_state)}" aria-label="music state" onchange="command('music','${escapeHtml(scene.id)}',{music_state:this.value})">
+          <button onclick="command('lock','${escapeHtml(scene.id)}',{locked:${!scene.locked}})">${scene.locked?'Unlock':'Lock'}</button>
         </div>
       </div>
     </section>`).join("");
