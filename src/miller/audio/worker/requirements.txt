@@ -1,0 +1,35 @@
+# Isolated alignment worker environment (WhisperX / stable-ts).
+#
+# Deliberately NOT part of the core pyproject.toml: heavy ML dependencies
+# (torch, CUDA wheels, faster-whisper, pyannote) must stay optional so a
+# basic Miller render never requires them (D-005 in DECISIONS.md).
+#
+# Build with, e.g.:
+#   uv venv .miller/workers/align
+#   uv pip install --python .miller/workers/align -r src/miller/audio/worker/requirements.txt
+#
+# Then point ExternalAlignmentWorker at that venv's interpreter running
+# align_worker.py, e.g.:
+#   ExternalAlignmentWorker((".miller/workers/align/Scripts/python.exe",
+#                             "src/miller/audio/worker/align_worker.py"))
+#
+# Evidence status: this file is a reproducible environment SPECIFICATION,
+# not yet installed or run in this repository checkout. WhisperX is pinned
+# to the exact upstream commit already recorded in docs/upstream-lock.json
+# (studied, not copied); stable-ts has no prior pinned revision on record,
+# so it is pinned by an approximate minimum version only -- confirm and
+# tighten the exact pin when this environment is actually built (AUD-002).
+# torch/CUDA wheel selection is hardware- and OS-specific; select the
+# correct index URL for the target machine (see
+# https://pytorch.org/get-started/locally/) rather than a bare `torch` pin.
+
+# torch: pick the correct CUDA build for the target machine at install time.
+# Example for CUDA 12.1 on Windows/Linux:
+#   --extra-index-url https://download.pytorch.org/whl/cu121
+torch>=2.1
+
+# WhisperX pinned to the upstream revision recorded in docs/upstream-lock.json.
+whisperx @ git+https://github.com/m-bain/whisperX.git@8dcdec18039f6f6b10b967c45273f54dd2a1f699
+
+# stable-ts: minimum version only; no prior pinned revision on record.
+stable-ts>=2.16

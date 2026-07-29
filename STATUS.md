@@ -5,9 +5,9 @@ Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`), and a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`) — both pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); and a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`) — all three pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
 
-Active sprint: **`AUD-001 — Pinned alignment worker environments`**.
+Active sprint: **`SEC-001 — Archive, file, API, and worker security tests`**.
 
 ## Preserved strengths
 
@@ -29,6 +29,6 @@ Active sprint: **`AUD-001 — Pinned alignment worker environments`**.
 
 ## Next
 
-Owner/independent review of `ARC-001` and `ARC-003` evidence, then implement
-and verify `AUD-001` (pinned alignment worker environments). The full plan is
-indexed by `docs/PLANNING_INDEX.md`.
+Owner/independent review of `ARC-001`, `ARC-003`, and `AUD-001` evidence,
+then implement and verify `SEC-001` (archive/file/API/worker security
+tests). The full plan is indexed by `docs/PLANNING_INDEX.md`.

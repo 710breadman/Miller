@@ -22,7 +22,21 @@ Decision log revision: **2026-07-21-definitive**
 | D-014 | Use Gemma 4 12B for bounded implementation, not unsupervised architecture decisions. | 64K local context is sufficient for small sprints but vulnerable to scope drift. | Every sprint lists files, tests, escalation, and Codex review. | When local model capability materially changes. |
 | D-015 | Default video duration is 13–18 minutes, with content-fit exceptions and deep-dive mode. | Latest owner preference supersedes older 8–12 minute planning. | `docs/PRODUCT_SPEC.md` requires reconciliation. | Owner decision `OD-002`. |
 
-### D-005 implementation note
+### D-005 implementation note (`AUD-001`)
+
+`AUD-001` implemented D-005 for the alignment worker: `src/miller/audio/worker/align_worker.py` is a new, standalone
+process (no import of the `miller` package) implementing the `probe`/`align`/`unload` JSON protocol, with
+`src/miller/audio/worker/requirements.txt` documenting its pinned, isolated environment (WhisperX pinned to the
+exact revision already recorded in `docs/upstream-lock.json`; stable-ts pinned only by a minimum version, with no
+prior recorded revision to pin exactly -- confirm and tighten when the environment is actually built, `AUD-002`).
+`probe` honestly reports today's real state on this machine (torch/whisperx/stable-ts all absent) rather than a
+simulated fixture. `ExternalAlignmentWorker.align()` in `whisper_worker.py` now defaults to `device="auto"`,
+probing first and falling back to CPU (`int8`) when CUDA is unavailable, while an explicit `device`/`compute_type`
+still bypasses that resolution. Covered by 8 new tests in `tests/test_audio.py`; full local gate (Ruff, strict Mypy
+across 84 files, Pytest, build) passed. No heavy ML dependency was installed or downloaded in this session -- that
+remains explicit, owner-gated work per OD-007. Pending owner/independent review; see `HANDOFF.md`.
+
+### D-005 implementation note (`ARC-003`)
 
 `ARC-003` partially implemented D-005 (worker environment isolation) at the
 core-queue level: `src/miller/workers.py` and `src/miller/db.py` now enforce

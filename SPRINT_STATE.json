@@ -2,7 +2,7 @@
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
   "updated_at": "2026-07-29",
-  "active_sprint": "AUD-001",
+  "active_sprint": "SEC-001",
   "completed_sprints": [
     "INV-001",
     "INV-002",
@@ -11,7 +11,8 @@
     "INV-003",
     "DOC-001",
     "ARC-001",
-    "ARC-003"
+    "ARC-003",
+    "AUD-001"
   ],
   "accepted_evidence": {
     "repository_inventory": "E2",
@@ -20,6 +21,7 @@
     "windows_target": "E3",
     "database_migrations_restore": "E3",
     "worker_protocol_lease_admission": "E3",
+    "alignment_worker_environment_spec": "E3",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
@@ -63,7 +65,6 @@
     "ADV-003": "Open exported timeline/media in a supported NLE, compare frame timing, edits, transitions, and relink portability."
   },
   "next_unblocked": [
-    "AUD-001",
     "SEC-001",
     "SEC-002",
     "QAE-001"
@@ -74,9 +75,9 @@
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "arc003_worker_protocol_implemented_pending_owner_review",
-    "last_safe_checkpoint": "ARC-003 versioned worker protocol, lease/heartbeat, stale-result guard, cancellation, timeout, error classes, and one-GPU admission implemented in src/miller/{db,models,workers}.py; ruff, strict mypy (82 files), full pytest (87 passed, 16 new), and wheel/sdist build passed locally; local analysis-station review agreed on all 8 acceptance criteria (Head Chef run run-c324ccef4c5699b9, accepted by coordinator).",
-    "next_exact_action": "Owner/independent review of ARC-001 and ARC-003 evidence, then run AUD-001 pinned alignment worker environments (deps ARC-003 + ENV-001, both complete); preserve ENV-002 script/narration half and license decisions as owner-gated.",
+    "status": "aud001_worker_environment_implemented_pending_owner_review",
+    "last_safe_checkpoint": "AUD-001 standalone isolated alignment worker (align_worker.py), pinned requirements.txt, and CPU-fallback auto-device resolution in ExternalAlignmentWorker.align() implemented; ruff, strict mypy (84 files), full pytest (95 passed, 8 new), and wheel/sdist build passed locally; local analysis-station review agreed on all 6 acceptance criteria (Head Chef run run-0bdcc2fd2eaad650, accepted by coordinator).",
+    "next_exact_action": "Owner/independent review of ARC-001, ARC-003, and AUD-001 evidence, then run SEC-001 archive/file/API/worker security tests (deps ARC-003, complete); preserve ENV-002 script/narration half and license decisions as owner-gated.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -351,7 +352,7 @@
       "id": "AUD-001",
       "title": "Pinned alignment worker environments",
       "roadmap": "R7",
-      "status": "active",
+      "status": "completed",
       "dependencies": [
         "ARC-003",
         "ENV-001"
@@ -545,7 +546,7 @@
       "id": "SEC-001",
       "title": "Archive, file, API, and worker security tests",
       "roadmap": "R10",
-      "status": "ready",
+      "status": "active",
       "dependencies": [
         "ARC-003"
       ]
