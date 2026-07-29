@@ -1,5 +1,9 @@
 # Comic to Video: Final Product Definition
 
+Status: **target product specification, not a completion report**. Capability
+claims require the evidence levels recorded in `CURRENT_STATE.md`; active and
+blocked work is authoritative in `SPRINT_STATE.json`.
+
 ## One-sentence product statement
 
 **Comic to Video is a local-first automatic YouTube production system that researches and writes human-sounding scripts, searches an indexed comic library for appropriate artwork, synchronizes visuals to recorded narration, creates a polished comic-first video, automatically repairs weak scenes, and optionally exports a professional editable timeline.**
@@ -14,7 +18,7 @@ The searchable library, research engine, script factory, storyboard, and rendere
 
 ## Typical result
 
-* Default length: **8–12 minutes**
+* Default length: **13–18 minutes** for normal video essays; shorter content is allowed when subject scope does not support that duration, with a separate deep-dive mode for longer work.
 * Optional mode: **Deep Dive**
 * Visual emphasis: **mostly comic artwork**
 * Normal input: **finished script and edited narration**

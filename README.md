@@ -30,7 +30,7 @@ pipeline.
 - Capability detection, RTX 3070/low-memory/CPU profiles, safe cache pruning,
   Windows install/verify/launch scripts, and a no-AI end-to-end command
 
-## Install into `D:\_Codex\Miller`
+## Install from the current checkout
 
 Extract the release archive anywhere, then double-click:
 
@@ -44,7 +44,7 @@ Or run:
 powershell -ExecutionPolicy Bypass -File .\APPLY_TO_D_CODEX_MILLER.ps1
 ```
 
-The installer defaults to `D:\_Codex\Miller`, creates a backup outside the Git
+The installer detects its checkout/workspace paths, creates a backup outside the Git
 worktree, preserves dirty Git work, creates a new branch when possible, copies
 without deleting user files, installs locked dependencies from public PyPI, and
 runs the complete verification gate.
@@ -60,8 +60,8 @@ The repair resumes the existing installation; it does not recopy or remove user 
 ## Verify or launch
 
 ```powershell
-D:\_Codex\Miller\VERIFY_MILLER.ps1
-D:\_Codex\Miller\RUN_MILLER.ps1
+.\VERIFY_MILLER.ps1
+.\RUN_MILLER.ps1
 ```
 
 The editor opens on `http://127.0.0.1:8765` by default.

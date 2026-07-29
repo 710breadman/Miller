@@ -35,7 +35,7 @@ Miller must feel simple to operate while retaining deep provenance, alternatives
 
 ### Duration
 
-The latest owner preference is **13–18 minutes** for normal video essays, with shorter content allowed when the subject does not support that length and a separate deep-dive mode for longer work. The older `docs/PRODUCT_SPEC.md` says 8–12 minutes; reconciliation is tracked in `DOC-001`.
+The owner preference is **13–18 minutes** for normal video essays, with shorter content allowed when the subject does not support that length and a separate deep-dive mode for longer work. `docs/PRODUCT_SPEC.md` is reconciled to this default; historical planning references remain historical.
 
 ## Product principles
 
