@@ -1,18 +1,23 @@
 {
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
-  "updated_at": "2026-07-21",
-  "active_sprint": "ENV-001",
+  "updated_at": "2026-07-29",
+  "active_sprint": "ARC-003",
   "completed_sprints": [
     "INV-001",
     "INV-002",
-    "DOC-002"
+    "DOC-002",
+    "ENV-001",
+    "INV-003",
+    "DOC-001",
+    "ARC-001"
   ],
   "accepted_evidence": {
     "repository_inventory": "E2",
     "core_contract_suite": "E2",
     "synthetic_no_ai_mp4": "E2",
-    "windows_target": "E0",
+    "windows_target": "E3",
+    "database_migrations_restore": "E3",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
@@ -58,8 +63,6 @@
   "next_unblocked": [
     "ENV-001",
     "INV-003",
-    "DOC-001",
-    "ARC-001",
     "ARC-003",
     "SEC-001",
     "SEC-002",
@@ -71,9 +74,9 @@
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "planning_package_prepared",
-    "last_safe_checkpoint": "Definitive control documents generated and validated locally.",
-    "next_exact_action": "Run ENV-001 using docs/LOCAL_ACCEPTANCE_TEST.md on the owner Windows checkout.",
+    "status": "arc001_migrations_implemented_pending_owner_review",
+    "last_safe_checkpoint": "ARC-001 ordered migrations, preflight backup, integrity checks, and restore drill implemented in src/miller/db.py; ruff, strict mypy, full pytest (71 passed), and wheel/sdist build passed locally; local analysis-station review agreed on all acceptance criteria (Head Chef run run-1ffb0cf91e2875eb, accepted by coordinator).",
+    "next_exact_action": "Owner/independent review of ARC-001 evidence, then run ARC-003 worker protocol, lease, and resource hardening; preserve ENV-002 and license decisions as owner-gated.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -97,7 +100,7 @@
       "id": "INV-003",
       "title": "Dependency, data, and license audit",
       "roadmap": "R1",
-      "status": "ready",
+      "status": "completed",
       "dependencies": [
         "INV-001"
       ]
@@ -106,7 +109,7 @@
       "id": "DOC-001",
       "title": "Reconcile product vision and stale claims",
       "roadmap": "R1",
-      "status": "ready",
+      "status": "completed",
       "dependencies": [
         "INV-001",
         "INV-002"
@@ -126,7 +129,7 @@
       "id": "ENV-001",
       "title": "Windows checkout and capability proof",
       "roadmap": "R2",
-      "status": "active",
+      "status": "completed",
       "dependencies": [
         "DOC-002"
       ]
@@ -162,7 +165,7 @@
       "id": "ARC-001",
       "title": "Ordered database migrations and restore",
       "roadmap": "R3",
-      "status": "ready",
+      "status": "completed",
       "dependencies": [
         "DOC-002"
       ]
@@ -181,7 +184,7 @@
       "id": "ARC-003",
       "title": "Worker protocol, lease, and resource hardening",
       "roadmap": "R3",
-      "status": "ready",
+      "status": "active",
       "dependencies": [
         "ARC-001"
       ]

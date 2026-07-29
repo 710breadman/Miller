@@ -1,8 +1,8 @@
 # Miller current-state assessment
 
-Assessment date: **2026-07-21**  
+Assessment date: **2026-07-26**
 Repository: `710breadman/Miller`  
-Inspected branch: `main` at merge commit `4bf034d27e77ae3652ee5eed8ce96da21768513b`
+Inspected branch: `codex/env-001` at planning commit `954390b82e077852439636ef7e6aadff03341615`; active control sprint: `ARC-001`
 
 ## Executive assessment
 
@@ -10,7 +10,7 @@ Miller is **not a blank project**. It has a coherent Python foundation, strong o
 
 It is also **not yet a proven comic-understanding or production-quality video system**. The current end-to-end baseline uses filename/OCR text, simple white-gutter panel heuristics, uniform audio timing, greedy lexical scene selection, and synthetic media tests. Most model-backed integrations are contracts without a shipped worker environment or real-corpus evidence. The local web interface is a minimal inline prototype.
 
-The correct next move is to preserve the foundation, formalize evidence levels, complete local Windows acceptance, make the baseline use the durable DAG, then benchmark comic analysis and retrieval on owner-approved labels.
+The correct next move is to preserve the foundation, reconcile control-document claims, make the baseline use the durable DAG, then benchmark comic analysis and retrieval on owner-approved labels. ENV-001 local synthetic acceptance reached E3; real-corpus and human gates remain open.
 
 ## Evidence levels
 
@@ -19,7 +19,7 @@ The correct next move is to preserve the foundation, formalize evidence levels, 
 | E0 | Documented intent only | React product UI, advanced character re-ID |
 | E1 | Typed contract or scaffold | WhisperX and embedding subprocess adapters |
 | E2 | Automated synthetic test | 64-test suite, generated tone and tiny images |
-| E3 | Local hardware pass | not yet recorded for current Windows/RTX target |
+| E3 | Local hardware pass | ENV-001 synthetic no-OCR/OCR baseline, RTX 3070, FFmpeg/Tesseract, hashes, and SQLite integrity |
 | E4 | Real-corpus quantitative pass | not yet recorded for retrieval, OCR, panel detection |
 | E5 | Human visual/audio acceptance | not yet recorded |
 | E6 | Clean-machine release acceptance | not yet recorded |
@@ -97,7 +97,7 @@ FFmpeg render → quality checks → bounded repair
 
 | Subsystem | Intended purpose | Current status | Relevant files | Proven | Missing or weak | Next action |
 |---|---|---|---|---|---|---|
-| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E2 transaction and recovery tests | explicit ordered migrations, backup/restore, corruption drills | `ARC-001` |
+| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E3 transaction/recovery tests plus ordered migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, local Windows run) | large real-project database restart/interruption acceptance | `ARC-003`, `ENV-004` |
 | Artifact store | immutable content-addressed outputs and hashes | implemented foundation | `artifacts.py`, `runtime/cache.py` | E2 cache/invalidation tests | large-cache performance and Windows path proof | `ENV-004`, `VID-004` |
 | Pipeline runner | deterministic DAG, cache, cancellation, retries | implemented but not used by baseline | `runner.py` | E2 isolated DAG tests | baseline composition and real restart | `ARC-002` |
 | Queue | persistent bounded work | partial | `workers.py`, DB queue tables | E2 claim/complete/fail contracts | leases/heartbeat, worker death, priorities, project/GPU policy | `ARC-003` |
@@ -144,13 +144,25 @@ FFmpeg render → quality checks → bounded repair
 - optional dependency isolation;
 - synthetic package and CLI baseline.
 
-### Complete but not locally validated
+### Implemented contracts with remaining external validation
 
-- Windows installer/launcher;
-- FFmpeg baseline on owner machine;
 - portable project packaging;
 - Qdrant persisted/local behavior;
 - OTIO export against an actual editor.
+
+The Windows installer/launcher and synthetic FFmpeg baseline reached E3 during
+`ENV-001`; clean-machine, real-media, long-path, and human-quality gates remain
+open.
+
+`ARC-001` reached E3 on this local Windows machine: ordered schema migrations,
+a verified preflight backup taken before any migration, `PRAGMA
+integrity_check`-based corruption detection, and a restore drill (corrupt the
+live file, restore from the verified backup, confirm data and integrity) are
+implemented in `src/miller/db.py` and covered by `tests/test_db.py`. Ruff,
+strict Mypy, the full Pytest suite (71 tests), and the wheel/sdist build all
+passed locally. Interruption/crash-mid-migration, very large real project
+databases, and Windows long-path/AV interaction remain open (`ARC-003`,
+`ENV-004`).
 
 ### Partially implemented
 
@@ -179,22 +191,22 @@ FFmpeg render → quality checks → bounded repair
 - calibrated multimodal retrieval winner;
 - global storyboard optimization;
 - product-grade UI;
-- release-grade migration and backup system.
+- release-packaging migration/rollback ledger for distributed installs (`REL-002`; the core database migration/backup/restore system itself is implemented, see `ARC-001`).
 
 ### Blocked
 
 - real-corpus and subjective gates require owner-approved comics and narration;
-- target GPU measurements require the Windows machine;
+- representative model and real-media GPU measurements remain unrecorded;
 - distribution requires owner license choice;
 - Resolve compatibility requires supported Resolve installation.
 
 ## Technical debt with highest leverage
 
 1. Baseline bypasses the durable DAG, so resume claims are broader than current end-to-end behavior.
-2. Schema upgrades are additive initialization rather than a formal migration ledger with pre-migration backup.
+2. ~~Schema upgrades are additive initialization rather than a formal migration ledger with pre-migration backup.~~ Resolved in `ARC-001`: ordered migrations, preflight backup, integrity checks, and a restore drill.
 3. Evidence claims are spread across status, reports, and sprint state without a shared evidence level.
-4. Current sprint state says the active item is also blocked; the state model needs separate active work and fallback-ready work.
-5. `SPRINTS.md` compresses major model, integration, validation, and recovery work into broad items unsuitable for Gemma 4 12B.
+4. Legacy `SPRINTS.md` numbering differs from the definitive control-card IDs; `SPRINT_STATE.json` is authoritative.
+5. The legacy roadmap compresses major model, integration, validation, and recovery work into broad items unsuitable for bounded local-worker tasks.
 6. The HTML editor is embedded in Python and cannot yet support the intended visual workflow.
 7. Retrieval is page-centric and greedy; the product needs panel/page mixed candidates and global continuity.
 8. Model adapters validate JSON shape but need process lifecycle, version manifests, resource isolation, and retry/cancel semantics.
@@ -203,4 +215,8 @@ FFmpeg render → quality checks → bounded repair
 
 ## Recommended immediate action
 
-Run `ENV-001` from `docs/sprints/ENV-001.md`: verify the current Windows checkout, preserve Git state, run the locked quality gate, capture capabilities, and record exact local failures without changing product behavior.
+`ARC-001` is implemented and locally verified (see above); it still needs
+independent human/owner review before its evidence is treated as final. Run
+`ARC-003` from `docs/sprints/ARC-003.md` next: worker protocol, lease, and
+resource hardening, the next unblocked item on the critical path, while
+preserving owner-gated real-corpus work.

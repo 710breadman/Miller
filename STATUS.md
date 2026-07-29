@@ -1,13 +1,13 @@
 # Project status
 
-Updated: **2026-07-21**  
+Updated: **2026-07-29**
 Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation and synthetic no-AI video baseline. It does not yet have target-Windows, real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, pending owner/independent review). It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
 
-Active sprint: **`ENV-001 — Windows checkout and capability proof`**.
+Active sprint: **`ARC-003 — Worker protocol, lease, and resource hardening`**.
 
 ## Preserved strengths
 
@@ -22,11 +22,13 @@ Active sprint: **`ENV-001 — Windows checkout and capability proof`**.
 ## Highest gaps
 
 - the direct baseline does not yet use the durable DAG;
-- database migrations and worker leases need hardening;
+- worker leases and resource hardening need work (`ARC-003`);
 - panel/OCR/semantic analysis and retrieval lack real-corpus proof;
 - storyboard choices are lexical/greedy rather than globally optimized;
 - real alignment, cleanup, UI, partial render, Windows packaging, and licensing remain open.
 
 ## Next
 
-Run `docs/LOCAL_ACCEPTANCE_TEST.md`, preserve evidence, and update state only after independent review. The full plan is indexed by `docs/PLANNING_INDEX.md`.
+Owner/independent review of `ARC-001` evidence, then implement and verify
+`ARC-003` (worker protocol, lease, and resource hardening). The full plan is
+indexed by `docs/PLANNING_INDEX.md`.

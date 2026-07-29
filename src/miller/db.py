@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
@@ -44,6 +46,174 @@ class DocumentConflict(RuntimeError):
     """Raised when optimistic document revision checking fails."""
 
 
+class DatabaseIntegrityError(RuntimeError):
+    """Raised when a database file fails a SQLite integrity check."""
+
+
+class MigrationError(RuntimeError):
+    """Raised when ordered schema migration cannot proceed safely."""
+
+
+@dataclass(frozen=True)
+class _Migration:
+    """One ordered, idempotent schema migration step."""
+
+    version: int
+    description: str
+    script: str
+
+
+# Each migration's DDL is grouped by the feature that introduced it. The
+# repository history does not preserve the original per-version diffs (the
+# schema was published in one commit), so these boundaries are a faithful
+# reconstruction by feature area rather than a literal replay of past
+# upgrades: 1) core stage/attempt/artifact/event tables, 2) revisioned
+# project documents, 3) the persistent work queue. See DECISIONS.md D-004.
+_MIGRATIONS: tuple[_Migration, ...] = (
+    _Migration(
+        version=1,
+        description="Core project, stage, attempt, artifact, and event tables.",
+        script="""
+            CREATE TABLE IF NOT EXISTS schema_meta (
+                version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                workspace TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_definitions (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_dependencies (
+                stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE CASCADE,
+                dependency_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
+                PRIMARY KEY (stage_id, dependency_id),
+                CHECK (stage_id <> dependency_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_runs (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
+                status TEXT NOT NULL,
+                input_fingerprint TEXT,
+                output_artifact_id TEXT,
+                active_attempt_id TEXT,
+                cancel_requested INTEGER NOT NULL DEFAULT 0,
+                error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(project_id, stage_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_attempts (
+                id TEXT PRIMARY KEY,
+                stage_run_id TEXT NOT NULL REFERENCES stage_runs(id) ON DELETE CASCADE,
+                number INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                attempt_guard TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                error TEXT,
+                UNIQUE(stage_run_id, number)
+            );
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id TEXT PRIMARY KEY,
+                content_id TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE SET NULL,
+                relative_path TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                media_type TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(project_id, relative_path)
+            );
+
+            CREATE TABLE IF NOT EXISTS events (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE CASCADE,
+                attempt_id TEXT REFERENCES stage_attempts(id) ON DELETE CASCADE,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_stage_runs_project
+                ON stage_runs(project_id, stage_id);
+            CREATE INDEX IF NOT EXISTS idx_attempts_run
+                ON stage_attempts(stage_run_id, number);
+            CREATE INDEX IF NOT EXISTS idx_events_project
+                ON events(project_id, created_at);
+        """,
+    ),
+    _Migration(
+        version=2,
+        description="Revisioned project documents and their history.",
+        script="""
+            CREATE TABLE IF NOT EXISTS project_documents (
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                document_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY(project_id, kind)
+            );
+
+            CREATE TABLE IF NOT EXISTS project_document_history (
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                document_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY(project_id, kind, revision)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_project_document_history
+                ON project_document_history(project_id, kind, revision);
+        """,
+    ),
+    _Migration(
+        version=3,
+        description="Persistent bounded work queue.",
+        script="""
+            CREATE TABLE IF NOT EXISTS work_queue (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                status TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                started_at TEXT,
+                completed_at TEXT,
+                error TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_work_queue_claim
+                ON work_queue(kind, status, priority, created_at);
+        """,
+    ),
+)
+
+assert [migration.version for migration in _MIGRATIONS] == list(
+    range(1, _SCHEMA_VERSION + 1)
+), "migrations must be dense and ordered from 1 to _SCHEMA_VERSION"
+
+
 class Database:
     """Miller's source-of-truth SQLite database."""
 
@@ -72,147 +242,146 @@ class Database:
             connection.close()
 
     def initialize(self) -> None:
-        with self.transaction() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS schema_meta (
-                    version INTEGER NOT NULL
-                );
+        """Bring the database file up to ``_SCHEMA_VERSION`` via ordered migrations.
 
-                CREATE TABLE IF NOT EXISTS projects (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    workspace TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
+        A database file that already exists is integrity-checked before anything
+        else runs. If pending migrations exist, a verified preflight backup is
+        taken first so :meth:`restore_from_backup` can recover the prior state.
+        A brand-new (missing or empty) database file is created directly at the
+        latest schema with no backup, since there is no prior state to lose.
+        """
 
-                CREATE TABLE IF NOT EXISTS stage_definitions (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    version TEXT NOT NULL
-                );
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        pre_existing = self.path.exists() and self.path.stat().st_size > 0
+        if pre_existing:
+            self._check_integrity(context=f"preflight check of {self.path}")
 
-                CREATE TABLE IF NOT EXISTS stage_dependencies (
-                    stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE CASCADE,
-                    dependency_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
-                    PRIMARY KEY (stage_id, dependency_id),
-                    CHECK (stage_id <> dependency_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS stage_runs (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
-                    status TEXT NOT NULL,
-                    input_fingerprint TEXT,
-                    output_artifact_id TEXT,
-                    active_attempt_id TEXT,
-                    cancel_requested INTEGER NOT NULL DEFAULT 0,
-                    error TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    UNIQUE(project_id, stage_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS stage_attempts (
-                    id TEXT PRIMARY KEY,
-                    stage_run_id TEXT NOT NULL REFERENCES stage_runs(id) ON DELETE CASCADE,
-                    number INTEGER NOT NULL,
-                    status TEXT NOT NULL,
-                    attempt_guard TEXT NOT NULL,
-                    started_at TEXT NOT NULL,
-                    completed_at TEXT,
-                    error TEXT,
-                    UNIQUE(stage_run_id, number)
-                );
-
-                CREATE TABLE IF NOT EXISTS artifacts (
-                    id TEXT PRIMARY KEY,
-                    content_id TEXT NOT NULL,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE SET NULL,
-                    relative_path TEXT NOT NULL,
-                    sha256 TEXT NOT NULL,
-                    size_bytes INTEGER NOT NULL,
-                    media_type TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    UNIQUE(project_id, relative_path)
-                );
-
-                CREATE TABLE IF NOT EXISTS events (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE CASCADE,
-                    attempt_id TEXT REFERENCES stage_attempts(id) ON DELETE CASCADE,
-                    payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_stage_runs_project
-                    ON stage_runs(project_id, stage_id);
-                CREATE INDEX IF NOT EXISTS idx_attempts_run
-                    ON stage_attempts(stage_run_id, number);
-                CREATE INDEX IF NOT EXISTS idx_events_project
-                    ON events(project_id, created_at);
-
-                CREATE TABLE IF NOT EXISTS project_documents (
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    revision INTEGER NOT NULL,
-                    document_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    PRIMARY KEY(project_id, kind)
-                );
-
-                CREATE TABLE IF NOT EXISTS project_document_history (
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    revision INTEGER NOT NULL,
-                    document_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    PRIMARY KEY(project_id, kind, revision)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_project_document_history
-                    ON project_document_history(project_id, kind, revision);
-
-                CREATE TABLE IF NOT EXISTS work_queue (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    priority INTEGER NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    started_at TEXT,
-                    completed_at TEXT,
-                    error TEXT
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_work_queue_claim
-                    ON work_queue(kind, status, priority, created_at);
-                """
+        current_version = self._read_schema_version() if pre_existing else 0
+        if current_version > _SCHEMA_VERSION:
+            raise MigrationError(
+                f"database schema {current_version} is newer than supported "
+                f"{_SCHEMA_VERSION}; refusing to downgrade {self.path}"
             )
-            row = connection.execute("SELECT version FROM schema_meta").fetchone()
-            if row is None:
-                connection.execute(
-                    "INSERT INTO schema_meta(version) VALUES (?)", (_SCHEMA_VERSION,)
-                )
-            else:
-                version = int(row["version"])
-                if version in {1, 2}:
+
+        pending = tuple(m for m in _MIGRATIONS if m.version > current_version)
+        if not pending:
+            return
+
+        backup_path: Path | None = None
+        if pre_existing:
+            backup_path = self.create_backup(
+                reason=f"pre-migration-v{current_version}-to-v{_SCHEMA_VERSION}"
+            )
+
+        try:
+            for migration in pending:
+                with self.transaction() as connection:
+                    connection.executescript(migration.script)
+                    connection.execute("DELETE FROM schema_meta")
                     connection.execute(
-                        "UPDATE schema_meta SET version=?", (_SCHEMA_VERSION,)
+                        "INSERT INTO schema_meta(version) VALUES (?)", (migration.version,)
                     )
-                elif version != _SCHEMA_VERSION:
-                    raise RuntimeError(
-                        f"unsupported database schema {version}; expected {_SCHEMA_VERSION}"
-                    )
+            self._check_integrity(context=f"post-migration check of {self.path}")
+        except Exception as exc:
+            hint = (
+                f" A verified preflight backup is available at {backup_path}."
+                if backup_path is not None
+                else ""
+            )
+            raise MigrationError(
+                f"migration to schema {_SCHEMA_VERSION} failed for {self.path}: {exc}.{hint}"
+            ) from exc
+
+    def verify_integrity(self) -> None:
+        """Raise :class:`DatabaseIntegrityError` if the database file is corrupt."""
+
+        self._check_integrity(context=f"explicit verification of {self.path}")
+
+    def create_backup(self, *, reason: str | None = None, destination: Path | None = None) -> Path:
+        """Copy this database to a verified backup file using SQLite's backup API.
+
+        The backup is read back and integrity-checked before this method returns,
+        so callers can trust that a returned path is restorable.
+        """
+
+        if not self.path.exists():
+            raise FileNotFoundError(f"cannot back up missing database: {self.path}")
+        if destination is None:
+            backup_dir = self.path.parent / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = utc_now().strftime("%Y%m%dT%H%M%SZ")
+            suffix = f"-{reason}" if reason else ""
+            destination = backup_dir / f"{self.path.stem}.{timestamp}{suffix}.sqlite3"
+        else:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+
+        source_connection = sqlite3.connect(self.path)
+        destination_connection = sqlite3.connect(destination)
+        try:
+            source_connection.backup(destination_connection)
+        finally:
+            destination_connection.close()
+            source_connection.close()
+
+        Database(destination)._check_integrity(context=f"backup verification of {destination}")
+        return destination
+
+    def restore_from_backup(self, backup_path: Path | str) -> None:
+        """Atomically replace this database's live file with a verified backup.
+
+        The backup is integrity-checked before touching the live file. The
+        restored content is staged next to the live path and integrity-checked
+        again before the atomic replace, so a failure never leaves the live
+        file partially overwritten.
+        """
+
+        backup_path = Path(backup_path)
+        if not backup_path.exists():
+            raise FileNotFoundError(f"backup not found: {backup_path}")
+        Database(backup_path)._check_integrity(context=f"restore source {backup_path}")
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        staging_path = self.path.with_name(f"{self.path.name}.restore-{secrets.token_hex(8)}.tmp")
+        source_connection = sqlite3.connect(backup_path)
+        staging_connection = sqlite3.connect(staging_path)
+        try:
+            source_connection.backup(staging_connection)
+        finally:
+            staging_connection.close()
+            source_connection.close()
+
+        try:
+            Database(staging_path)._check_integrity(context=f"restore staging {staging_path}")
+            os.replace(staging_path, self.path)
+        finally:
+            if staging_path.exists():
+                staging_path.unlink()
+
+    def _check_integrity(self, *, context: str) -> None:
+        try:
+            connection = sqlite3.connect(self.path, timeout=30)
+            try:
+                result = connection.execute("PRAGMA integrity_check").fetchone()
+            finally:
+                connection.close()
+        except sqlite3.DatabaseError as exc:
+            raise DatabaseIntegrityError(f"integrity check failed during {context}: {exc}") from exc
+        outcome = str(result[0]) if result is not None else "unknown"
+        if outcome != "ok":
+            raise DatabaseIntegrityError(f"integrity check failed during {context}: {outcome}")
+
+    def _read_schema_version(self) -> int:
+        connection = sqlite3.connect(self.path, timeout=30)
+        try:
+            table = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_meta'"
+            ).fetchone()
+            if table is None:
+                return 0
+            row = connection.execute("SELECT version FROM schema_meta").fetchone()
+            return int(row[0]) if row is not None else 0
+        finally:
+            connection.close()
 
     def create_project(
         self, name: str, workspace: Path | str, project_id: str | None = None

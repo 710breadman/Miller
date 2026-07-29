@@ -22,6 +22,16 @@ Decision log revision: **2026-07-21-definitive**
 | D-014 | Use Gemma 4 12B for bounded implementation, not unsupervised architecture decisions. | 64K local context is sufficient for small sprints but vulnerable to scope drift. | Every sprint lists files, tests, escalation, and Codex review. | When local model capability materially changes. |
 | D-015 | Default video duration is 13–18 minutes, with content-fit exceptions and deep-dive mode. | Latest owner preference supersedes older 8–12 minute planning. | `docs/PRODUCT_SPEC.md` requires reconciliation. | Owner decision `OD-002`. |
 
+### D-004 implementation note
+
+`ARC-001` implemented D-004: `src/miller/db.py` now applies ordered migrations
+(`_MIGRATIONS`), takes a verified preflight backup (`create_backup`) before
+migrating an existing database, checks integrity with `PRAGMA
+integrity_check` before and after migration, and supports a restore drill
+(`restore_from_backup`). Covered by `tests/test_db.py`; full local gate
+(Ruff, strict Mypy, Pytest, build) passed. Pending owner/independent review;
+see `HANDOFF.md`.
+
 ## Deferred decisions
 
 | ID | Decision required | Safe default until decided | Blocking |
