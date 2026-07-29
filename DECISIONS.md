@@ -22,6 +22,20 @@ Decision log revision: **2026-07-21-definitive**
 | D-014 | Use Gemma 4 12B for bounded implementation, not unsupervised architecture decisions. | 64K local context is sufficient for small sprints but vulnerable to scope drift. | Every sprint lists files, tests, escalation, and Codex review. | When local model capability materially changes. |
 | D-015 | Default video duration is 13–18 minutes, with content-fit exceptions and deep-dive mode. | Latest owner preference supersedes older 8–12 minute planning. | `docs/PRODUCT_SPEC.md` requires reconciliation. | Owner decision `OD-002`. |
 
+### D-005 implementation note
+
+`ARC-003` partially implemented D-005 (worker environment isolation) at the
+core-queue level: `src/miller/workers.py` and `src/miller/db.py` now enforce
+a versioned worker protocol, lease/heartbeat, a stale-result guard,
+cooperative cancellation, lease-based timeout detection, typed error
+classification (`WorkerErrorClass`), and single-GPU admission
+(`requires_gpu` + `gpu_capacity`). The external worker adapters themselves
+(`audio/whisper_worker.py`, `retrieval/embedding_worker.py`) do not yet call
+through this protocol -- that remains `ANL-005`/`AUD-001`/`RET-004` work.
+Covered by 16 new tests in `tests/test_queue.py` and `tests/test_workers.py`;
+full local gate (Ruff, strict Mypy, Pytest, build) passed. Pending
+owner/independent review; see `HANDOFF.md`.
+
 ### D-004 implementation note
 
 `ARC-001` implemented D-004: `src/miller/db.py` now applies ordered migrations

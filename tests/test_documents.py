@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from miller.artifacts import ArtifactStore
-from miller.db import Database, DocumentConflict
+from miller.db import _MIGRATIONS, Database, DocumentConflict
 from miller.models import StageDefinition, StageStatus
 
 
@@ -52,7 +52,7 @@ def test_schema_version_one_migrates_additively(tmp_path: Path) -> None:
         documents = connection.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='project_documents'"
         ).fetchone()
-    assert version is not None and int(version["version"]) == 3
+    assert version is not None and int(version["version"]) == _MIGRATIONS[-1].version
     assert documents is not None
 
 

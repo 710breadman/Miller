@@ -5,9 +5,9 @@ Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, pending owner/independent review). It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`), and a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`) — both pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
 
-Active sprint: **`ARC-003 — Worker protocol, lease, and resource hardening`**.
+Active sprint: **`AUD-001 — Pinned alignment worker environments`**.
 
 ## Preserved strengths
 
@@ -22,13 +22,13 @@ Active sprint: **`ARC-003 — Worker protocol, lease, and resource hardening`**.
 ## Highest gaps
 
 - the direct baseline does not yet use the durable DAG;
-- worker leases and resource hardening need work (`ARC-003`);
+- the new worker protocol/lease queue is not yet wired into the actual external adapters (WhisperX, embedding);
 - panel/OCR/semantic analysis and retrieval lack real-corpus proof;
 - storyboard choices are lexical/greedy rather than globally optimized;
 - real alignment, cleanup, UI, partial render, Windows packaging, and licensing remain open.
 
 ## Next
 
-Owner/independent review of `ARC-001` evidence, then implement and verify
-`ARC-003` (worker protocol, lease, and resource hardening). The full plan is
+Owner/independent review of `ARC-001` and `ARC-003` evidence, then implement
+and verify `AUD-001` (pinned alignment worker environments). The full plan is
 indexed by `docs/PLANNING_INDEX.md`.

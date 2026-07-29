@@ -97,10 +97,10 @@ FFmpeg render → quality checks → bounded repair
 
 | Subsystem | Intended purpose | Current status | Relevant files | Proven | Missing or weak | Next action |
 |---|---|---|---|---|---|---|
-| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E3 transaction/recovery tests plus ordered migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, local Windows run) | large real-project database restart/interruption acceptance | `ARC-003`, `ENV-004` |
+| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E3 transaction/recovery tests plus ordered migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, local Windows run) | large real-project database restart/interruption acceptance | `ARC-002`, `ENV-004` |
 | Artifact store | immutable content-addressed outputs and hashes | implemented foundation | `artifacts.py`, `runtime/cache.py` | E2 cache/invalidation tests | large-cache performance and Windows path proof | `ENV-004`, `VID-004` |
 | Pipeline runner | deterministic DAG, cache, cancellation, retries | implemented but not used by baseline | `runner.py` | E2 isolated DAG tests | baseline composition and real restart | `ARC-002` |
-| Queue | persistent bounded work | partial | `workers.py`, DB queue tables | E2 claim/complete/fail contracts | leases/heartbeat, worker death, priorities, project/GPU policy | `ARC-003` |
+| Queue | persistent bounded work | implemented foundation | `workers.py`, DB queue tables | E3 versioned protocol, lease/heartbeat, stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`, local Windows run) | priority scheduling across a single lease-holding item, real external-worker adapter integration | `ANL-005`, `RET-004`, `AUD-001` |
 | Folder/CBZ ingest | safe read-only source inventory | strong implementation | `comics/` | E2 archive safety and changed-source tests | CBR/PDF, malformed real archives, double-page semantics | `ENV-002`, `SEC-001` |
 | Page derivation | managed source copies/crops/masks | implemented contracts | `derived/` | E2 deterministic output tests | production crop policy, panel asset identity across reanalysis | `ANL-001` |
 | Panel detection | identify usable panels/regions | heuristic only | `analysis/panels.py` | E2 synthetic white-gutter cases | irregular/borderless panels, manga, splashes, spreads | `ANL-002` |
@@ -158,16 +158,31 @@ open.
 a verified preflight backup taken before any migration, `PRAGMA
 integrity_check`-based corruption detection, and a restore drill (corrupt the
 live file, restore from the verified backup, confirm data and integrity) are
-implemented in `src/miller/db.py` and covered by `tests/test_db.py`. Ruff,
-strict Mypy, the full Pytest suite (71 tests), and the wheel/sdist build all
-passed locally. Interruption/crash-mid-migration, very large real project
-databases, and Windows long-path/AV interaction remain open (`ARC-003`,
-`ENV-004`).
+implemented in `src/miller/db.py` and covered by `tests/test_db.py`.
+Interruption/crash-mid-migration, very large real project databases, and
+Windows long-path/AV interaction remain open (`ENV-004`).
+
+`ARC-003` reached E3 on this local Windows machine: a versioned worker
+protocol (items declare `protocol_version`; a worker rejects an unsupported
+version before ever invoking its handler), lease/heartbeat with a
+stale-result guard (`Database.claim_next`, `heartbeat_queue_item`, the
+`lease_token` check in `_finish_queue_item`), cooperative cancellation
+(`request_cancel_queue_item`, `WorkerContext.raise_if_cancelled`), lease-based
+timeout detection (`reclaim_expired_leases`), typed error classification
+(`WorkerErrorClass`), and single-GPU admission (`requires_gpu` +
+`gpu_capacity` in `claim_next`) are implemented in `src/miller/db.py`,
+`models.py`, and `workers.py`, preserving every pre-existing caller's call
+signature (`cli.py`'s queue commands, the original `QueueWorker(database,
+kind, handler)` construction). Ruff, strict Mypy across 82 files, the full
+Pytest suite (87 tests, 16 new), and the wheel/sdist build all passed
+locally. The existing external worker adapters (`audio/whisper_worker.py`,
+`retrieval/embedding_worker.py`) do not yet route through this protocol --
+that integration is `ANL-005`/`AUD-001`/`RET-004` work.
 
 ### Partially implemented
 
 - durable end-to-end orchestration;
-- queue worker lifecycle;
+- external worker adapters routed through the new versioned protocol/lease queue (core protocol done in `ARC-003`; adapters themselves not yet updated);
 - panel detection;
 - OCR;
 - hybrid retrieval;
@@ -209,14 +224,18 @@ databases, and Windows long-path/AV interaction remain open (`ARC-003`,
 5. The legacy roadmap compresses major model, integration, validation, and recovery work into broad items unsuitable for bounded local-worker tasks.
 6. The HTML editor is embedded in Python and cannot yet support the intended visual workflow.
 7. Retrieval is page-centric and greedy; the product needs panel/page mixed candidates and global continuity.
-8. Model adapters validate JSON shape but need process lifecycle, version manifests, resource isolation, and retry/cancel semantics.
+8. Model adapters validate JSON shape but need process lifecycle, version manifests, resource isolation, and retry/cancel semantics. `ARC-003` built the core-owned protocol version check, lease/heartbeat, stale-result guard, cancellation, timeout, error classification, and one-GPU admission in `db.py`/`workers.py`; the external adapters themselves (`audio/whisper_worker.py`, `retrieval/embedding_worker.py`) still call a bare subprocess without going through this queue/lease machinery.
 9. Real quality acceptance has no stable owner rubric or golden project.
 10. Product-duration and checkout-path documents contain stale values.
 
 ## Recommended immediate action
 
-`ARC-001` is implemented and locally verified (see above); it still needs
-independent human/owner review before its evidence is treated as final. Run
-`ARC-003` from `docs/sprints/ARC-003.md` next: worker protocol, lease, and
-resource hardening, the next unblocked item on the critical path, while
-preserving owner-gated real-corpus work.
+`ARC-001` and `ARC-003` are implemented and locally verified (see above);
+both still need independent human/owner review before their evidence is
+treated as final. Per `SPRINT_STATE.json`'s dependency graph, `AUD-001`
+(pinned alignment worker environments) is now the only direct `ARC-003`
+successor whose prerequisites are fully satisfied (`ARC-003` and `ENV-001`
+both complete); `ANL-005`/`RET-004`/`VID-002` remain blocked behind
+`ANL-001`/`VID-001`, which still need the owner-approved script+narration
+half of the `ENV-002` fixture. `SEC-001`, `SEC-002`, and `QAE-001` are also
+unblocked fallback options while preserving owner-gated real-corpus work.

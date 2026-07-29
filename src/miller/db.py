@@ -9,7 +9,7 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 from uuid import uuid4
@@ -27,11 +27,12 @@ from .models import (
     StageDefinition,
     StageRun,
     StageStatus,
+    WorkerErrorClass,
     utc_now,
 )
 from .transitions import InvalidTransition, validate_transition
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 
 
 def _iso(value: datetime) -> str:
@@ -205,6 +206,26 @@ _MIGRATIONS: tuple[_Migration, ...] = (
 
             CREATE INDEX IF NOT EXISTS idx_work_queue_claim
                 ON work_queue(kind, status, priority, created_at);
+        """,
+    ),
+    _Migration(
+        version=4,
+        description=(
+            "Worker protocol versioning, lease/heartbeat, cancellation, and "
+            "GPU admission for the work queue (ARC-003)."
+        ),
+        script="""
+            ALTER TABLE work_queue ADD COLUMN requires_gpu INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE work_queue ADD COLUMN protocol_version TEXT NOT NULL DEFAULT '1';
+            ALTER TABLE work_queue ADD COLUMN claimed_by TEXT;
+            ALTER TABLE work_queue ADD COLUMN lease_token TEXT;
+            ALTER TABLE work_queue ADD COLUMN lease_expires_at TEXT;
+            ALTER TABLE work_queue ADD COLUMN heartbeat_at TEXT;
+            ALTER TABLE work_queue ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE work_queue ADD COLUMN error_class TEXT;
+
+            CREATE INDEX IF NOT EXISTS idx_work_queue_lease_expiry
+                ON work_queue(status, lease_expires_at);
         """,
     ),
 )
@@ -1010,6 +1031,8 @@ class Database:
         payload: dict[str, Any] | None = None,
         *,
         priority: int = 100,
+        requires_gpu: bool = False,
+        protocol_version: str = "1",
     ) -> QueueItem:
         now = utc_now()
         item = QueueItem(
@@ -1018,6 +1041,8 @@ class Database:
             kind=kind,
             priority=priority,
             payload=payload or {},
+            requires_gpu=requires_gpu,
+            protocol_version=protocol_version,
             created_at=now,
             updated_at=now,
         )
@@ -1031,8 +1056,8 @@ class Database:
                 """
                 INSERT INTO work_queue(
                     id, project_id, kind, status, priority, payload_json,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    requires_gpu, protocol_version, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -1041,6 +1066,8 @@ class Database:
                     item.status.value,
                     item.priority,
                     json.dumps(item.payload, sort_keys=True, separators=(",", ":")),
+                    int(item.requires_gpu),
+                    item.protocol_version,
                     _iso(item.created_at),
                     _iso(item.updated_at),
                 ),
@@ -1049,11 +1076,35 @@ class Database:
                 connection,
                 project_id=project_id,
                 kind="queue.enqueued",
-                payload={"queue_id": item.id, "kind": kind.value},
+                payload={
+                    "queue_id": item.id,
+                    "kind": kind.value,
+                    "requires_gpu": item.requires_gpu,
+                },
             )
         return item
 
-    def claim_next(self, kind: QueueKind) -> QueueItem | None:
+    def claim_next(
+        self,
+        kind: QueueKind,
+        *,
+        worker_id: str | None = None,
+        lease_seconds: int = 300,
+        gpu_capacity: int = 1,
+    ) -> QueueItem | None:
+        """Claim the next pending item for ``kind``, or ``None`` if not admissible.
+
+        At most one item per ``kind`` runs at a time. If the highest-priority
+        pending item requires the GPU, it is only claimed while fewer than
+        ``gpu_capacity`` GPU-requiring items are running system-wide (across
+        all kinds); otherwise this call returns ``None`` for now rather than
+        skipping ahead to a lower-priority non-GPU item.
+        """
+
+        if lease_seconds < 1:
+            raise ValueError("lease_seconds must be positive")
+        if gpu_capacity < 0:
+            raise ValueError("gpu_capacity must not be negative")
         with self.transaction() as connection:
             running = connection.execute(
                 "SELECT 1 FROM work_queue WHERE kind=? AND status=? LIMIT 1",
@@ -1071,13 +1122,33 @@ class Database:
             ).fetchone()
             if row is None:
                 return None
+            if row["requires_gpu"]:
+                gpu_running = connection.execute(
+                    "SELECT COUNT(*) AS n FROM work_queue WHERE status=? AND requires_gpu=1",
+                    (QueueStatus.RUNNING.value,),
+                ).fetchone()
+                if int(gpu_running["n"]) >= gpu_capacity:
+                    return None
             now = utc_now()
+            lease_token = secrets.token_urlsafe(32)
+            lease_expires_at = now + timedelta(seconds=lease_seconds)
             connection.execute(
                 """
-                UPDATE work_queue SET status=?, started_at=?, updated_at=?, error=NULL
+                UPDATE work_queue
+                SET status=?, started_at=?, updated_at=?, error=NULL, error_class=NULL,
+                    lease_token=?, lease_expires_at=?, heartbeat_at=?, claimed_by=?
                 WHERE id=?
                 """,
-                (QueueStatus.RUNNING.value, _iso(now), _iso(now), row["id"]),
+                (
+                    QueueStatus.RUNNING.value,
+                    _iso(now),
+                    _iso(now),
+                    lease_token,
+                    _iso(lease_expires_at),
+                    _iso(now),
+                    worker_id,
+                    row["id"],
+                ),
             )
             updated = connection.execute(
                 "SELECT * FROM work_queue WHERE id=?", (row["id"],)
@@ -1087,18 +1158,143 @@ class Database:
                 connection,
                 project_id=row["project_id"],
                 kind="queue.started",
-                payload={"queue_id": row["id"], "kind": kind.value},
+                payload={"queue_id": row["id"], "kind": kind.value, "worker_id": worker_id},
             )
         return self._queue_item_from_row(updated)
 
-    def complete_queue_item(self, item_id: str) -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.COMPLETED, None)
+    def heartbeat_queue_item(
+        self, item_id: str, lease_token: str, *, lease_seconds: int = 300
+    ) -> None:
+        """Renew a running item's lease; proves the claiming worker is alive."""
 
-    def fail_queue_item(self, item_id: str, error: str) -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.FAILED, error)
+        if lease_seconds < 1:
+            raise ValueError("lease_seconds must be positive")
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown queue item: {item_id}")
+            if QueueStatus(row["status"]) != QueueStatus.RUNNING:
+                raise InvalidTransition("only a running queue item can be heartbeated")
+            if row["lease_token"] != lease_token:
+                raise PermissionError(
+                    "queue item lease token does not match; stale worker cannot renew this claim"
+                )
+            now = utc_now()
+            connection.execute(
+                """
+                UPDATE work_queue SET heartbeat_at=?, lease_expires_at=?, updated_at=?
+                WHERE id=?
+                """,
+                (_iso(now), _iso(now + timedelta(seconds=lease_seconds)), _iso(now), item_id),
+            )
 
-    def cancel_queue_item(self, item_id: str, error: str = "cancelled") -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.CANCELLED, error)
+    def reclaim_expired_leases(self, *, now: datetime | None = None) -> int:
+        """Fail running items whose lease expired without a heartbeat/completion.
+
+        Complements :meth:`recover_queue` (which handles a full process
+        restart) by detecting a claim that has gone silent -- for example a
+        crashed external worker subprocess -- without requiring this process
+        to be the one that restarted.
+        """
+
+        current = now or utc_now()
+        with self.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM work_queue
+                WHERE status=? AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
+                """,
+                (QueueStatus.RUNNING.value, _iso(current)),
+            ).fetchall()
+            for row in rows:
+                connection.execute(
+                    """
+                    UPDATE work_queue
+                    SET status=?, completed_at=?, updated_at=?, error=?, error_class=?,
+                        lease_token=NULL, lease_expires_at=NULL
+                    WHERE id=?
+                    """,
+                    (
+                        QueueStatus.FAILED.value,
+                        _iso(current),
+                        _iso(current),
+                        "lease expired without heartbeat or completion",
+                        WorkerErrorClass.TIMEOUT.value,
+                        row["id"],
+                    ),
+                )
+                self._insert_event(
+                    connection,
+                    project_id=row["project_id"],
+                    kind="queue.lease_expired",
+                    payload={"queue_id": row["id"], "worker_id": row["claimed_by"]},
+                )
+        return len(rows)
+
+    def request_cancel_queue_item(self, item_id: str) -> None:
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown queue item: {item_id}")
+            connection.execute(
+                "UPDATE work_queue SET cancel_requested=1, updated_at=? WHERE id=?",
+                (_iso(utc_now()), item_id),
+            )
+            self._insert_event(
+                connection,
+                project_id=row["project_id"],
+                kind="queue.cancel_requested",
+                payload={"queue_id": item_id},
+            )
+
+    def queue_cancellation_requested(self, item_id: str) -> bool:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT cancel_requested FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+        if row is None:
+            raise KeyError(f"unknown queue item: {item_id}")
+        return bool(row["cancel_requested"])
+
+    def complete_queue_item(self, item_id: str, lease_token: str | None = None) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.COMPLETED,
+            error=None,
+            error_class=None,
+            lease_token=lease_token,
+        )
+
+    def fail_queue_item(
+        self,
+        item_id: str,
+        error: str,
+        *,
+        error_class: WorkerErrorClass | None = None,
+        lease_token: str | None = None,
+    ) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.FAILED,
+            error=error,
+            error_class=error_class,
+            lease_token=lease_token,
+        )
+
+    def cancel_queue_item(
+        self, item_id: str, error: str = "cancelled", *, lease_token: str | None = None
+    ) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.CANCELLED,
+            error=error,
+            error_class=WorkerErrorClass.CANCELLED,
+            lease_token=lease_token,
+        )
 
     def recover_queue(self) -> int:
         now = utc_now()
@@ -1110,7 +1306,10 @@ class Database:
             for row in rows:
                 connection.execute(
                     """
-                    UPDATE work_queue SET status=?, started_at=NULL, updated_at=?, error=?
+                    UPDATE work_queue
+                    SET status=?, started_at=NULL, updated_at=?, error=?, error_class=NULL,
+                        lease_token=NULL, lease_expires_at=NULL, heartbeat_at=NULL,
+                        claimed_by=NULL
                     WHERE id=?
                     """,
                     (
@@ -1151,7 +1350,13 @@ class Database:
         return [self._queue_item_from_row(row) for row in rows]
 
     def _finish_queue_item(
-        self, item_id: str, status: QueueStatus, error: str | None
+        self,
+        item_id: str,
+        status: QueueStatus,
+        *,
+        error: str | None,
+        error_class: WorkerErrorClass | None,
+        lease_token: str | None,
     ) -> QueueItem:
         if status not in {
             QueueStatus.COMPLETED,
@@ -1167,13 +1372,30 @@ class Database:
                 raise KeyError(f"unknown queue item: {item_id}")
             if QueueStatus(row["status"]) != QueueStatus.RUNNING:
                 raise InvalidTransition("only a running queue item can finish")
+            if (
+                lease_token is not None
+                and row["lease_token"] is not None
+                and row["lease_token"] != lease_token
+            ):
+                raise PermissionError(
+                    "queue item lease token does not match; stale worker cannot finish this claim"
+                )
             now = utc_now()
             connection.execute(
                 """
-                UPDATE work_queue SET status=?, completed_at=?, updated_at=?, error=?
+                UPDATE work_queue
+                SET status=?, completed_at=?, updated_at=?, error=?, error_class=?,
+                    lease_token=NULL, lease_expires_at=NULL
                 WHERE id=?
                 """,
-                (status.value, _iso(now), _iso(now), error, item_id),
+                (
+                    status.value,
+                    _iso(now),
+                    _iso(now),
+                    error,
+                    error_class.value if error_class else None,
+                    item_id,
+                ),
             )
             updated = connection.execute(
                 "SELECT * FROM work_queue WHERE id=?", (item_id,)
@@ -1183,7 +1405,11 @@ class Database:
                 connection,
                 project_id=row["project_id"],
                 kind=f"queue.{status.value}",
-                payload={"queue_id": item_id, "error": error},
+                payload={
+                    "queue_id": item_id,
+                    "error": error,
+                    "error_class": error_class.value if error_class else None,
+                },
             )
         return self._queue_item_from_row(updated)
 
@@ -1191,6 +1417,8 @@ class Database:
     def _queue_item_from_row(row: sqlite3.Row) -> QueueItem:
         values: dict[str, Any] = dict(row)
         values["payload"] = json.loads(values.pop("payload_json"))
+        values["requires_gpu"] = bool(values["requires_gpu"])
+        values["cancel_requested"] = bool(values["cancel_requested"])
         return QueueItem.model_validate(values)
 
     def list_events(self, project_id: str) -> list[Event]:

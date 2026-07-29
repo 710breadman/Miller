@@ -83,12 +83,12 @@ def test_initialize_migrates_legacy_database_with_ordered_steps_and_backup(
         }
     finally:
         verify.close()
-    assert version_row is not None and version_row[0] == 3
+    assert version_row is not None and version_row[0] == _MIGRATIONS[-1].version
     assert {"project_documents", "project_document_history", "work_queue"} <= tables
 
     backups = list((tmp_path / "backups").glob("legacy.*.sqlite3"))
     assert len(backups) == 1
-    assert "pre-migration-v1-to-v3" in backups[0].name
+    assert f"pre-migration-v1-to-v{_MIGRATIONS[-1].version}" in backups[0].name
 
     backup_connection = sqlite3.connect(backups[0])
     try:
