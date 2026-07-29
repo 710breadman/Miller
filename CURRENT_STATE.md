@@ -207,6 +207,21 @@ binary directly (new `RISKS.md` RSK-025); and wrote `docs/NOTICES.md` and a supp
 terms once model workers are actually installed, and a fresh scan at release time (vulnerability databases and
 dependency versions change).
 
+`QAE-001` reached E2 (automated/contract-level, not a hardware-capability observation): finalized the human quality
+rubric in `EVALUATION_PLAN.md` with
+concrete visual and audio dimensions (crop/composition safety, text-free cleanliness, motion/transition
+appropriateness, visual variety; narration clarity, music/narration balance, music transition smoothness, A/V sync)
+alongside the pre-existing narrative dimensions; defined reviewer roles (primary reviewer with final authority,
+optional secondary reviewer, AI self-review as advisory-only); defined numeric scoring thresholds (`overall_score`
+≥4.0 → `accepted`, ≥3.0 → `needs_repair`, <3.0 → `rejected`, with a per-dimension floor rule); defined a
+disagreement-handling process (record both score sets, discuss against rubric text, preserve dissent permanently if
+unresolved); and specified an immutable, content-addressed E5 acceptance-record format
+(`docs/schemas/e5-acceptance-record.schema.json`, a synthetic example, and `docs/schemas/verify_e5_example.py` --
+a runnable script that recomputes `content_hash`/`record_id` from the example's own content and confirms
+byte-for-byte reproducibility). No production `src/miller` code was changed. Remaining: this rubric has not yet
+been exercised against a real rendered project — that requires the `ENV-002` script/narration fixture and an actual
+render.
+
 ### Partially implemented
 
 - durable end-to-end orchestration;
@@ -258,12 +273,11 @@ dependency versions change).
 
 ## Recommended immediate action
 
-`ARC-001` and `ARC-003` are implemented and locally verified (see above);
-both still need independent human/owner review before their evidence is
-treated as final. Per `SPRINT_STATE.json`'s dependency graph, `AUD-001`
-(pinned alignment worker environments) is now the only direct `ARC-003`
-successor whose prerequisites are fully satisfied (`ARC-003` and `ENV-001`
-both complete); `ANL-005`/`RET-004`/`VID-002` remain blocked behind
-`ANL-001`/`VID-001`, which still need the owner-approved script+narration
-half of the `ENV-002` fixture. `SEC-001`, `SEC-002`, and `QAE-001` are also
-unblocked fallback options while preserving owner-gated real-corpus work.
+`ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`, `SEC-002`, and `QAE-001` are all implemented and locally verified (see
+above); all six still need independent human/owner review before their evidence is treated as final. Per
+`SPRINT_STATE.json`'s dependency graph, **every remaining `ready`-status sprint now transitively depends on the
+still-missing script/narration half of `ENV-002`** (`ANL-001` gates `ANL-005`/`RET-001`/`RET-004`; `ENV-003` gates
+`ARC-002`, which in turn gates `ARC-004`/`STO-001`/`UX-001`/`VID-003`). The concrete next action is an owner
+decision, not further bounded implementation work: supply/approve a script + edited narration recording for at
+least one of the 10 `ENV-002` comic fixtures, or explicitly authorize installing a real model worker (WhisperX,
+embedding, VLM) to unblock the corresponding sprint.

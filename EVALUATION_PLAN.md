@@ -142,6 +142,105 @@ Compare baseline greedy selection against global optimizer using blind A/B when 
 - wheel and packaged artifact hashes;
 - rollback/uninstall boundaries documented.
 
+## Human quality rubric, reviewer roles, and acceptance records (`QAE-001`)
+
+This section finalizes the human-review side of the evaluation plan: who reviews, how a 1-5 score becomes an
+accept/repair/reject decision, what happens when reviewers disagree, and how an E5 human-acceptance record is
+stored so it cannot be silently edited later.
+
+### Visual, audio, and narrative rubric
+
+Score each dimension 1-5 (1 = fails the goal; 3 = acceptable with caveats; 5 = strong). The narrative/storyboard
+dimensions were already defined above ("Storyboard and narrative"); the same 1-5 scale extends to visual and audio
+review at the rendered-scene and whole-video level:
+
+**Visual** (per scene, then whole video):
+- crop/composition safety (no important subject cut off, no distracting frame);
+- text-free cleanliness (no readable leftover lettering unless intentionally kept);
+- motion/transition appropriateness for the beat's pacing and emotional weight;
+- visual variety without distracting repetition (see reuse policy in `docs/PRODUCT_SPEC.md`);
+- overall polish versus a professional video essay baseline.
+
+**Audio** (whole video):
+- narration clarity and levels (no clipping, no unintended silence);
+- music-under-narration balance (present but never competing with speech);
+- music transition smoothness at structural points;
+- A/V sync throughout;
+- absence of jarring or repeated audio artifacts.
+
+**Narrative** (whole video): use the existing "Storyboard and narrative" criteria above, evaluated against the
+*final rendered video*, not just the storyboard plan — a scene can score well on paper and still fail in the
+render (bad crop, mistimed transition, audio clash).
+
+### Reviewer roles
+
+- **Primary reviewer**: the project owner, or an explicitly delegated reviewer the owner names. Has final authority
+  to accept, request repair, or reject. Every E5 record requires exactly one primary reviewer.
+- **Secondary reviewer** (optional, recommended for `REL-002`/release-gating acceptance and for any golden project
+  used to tune defaults): an independent second person or an explicitly time-boxed second pass by the same person
+  after a break, scoring blind to the primary reviewer's scores. Not required for routine per-project acceptance.
+- **AI self-review** (advisory only, per the existing statistical rule below): automated `quality/` findings
+  (`editorial.py`, `media.py`) may flag candidates for human attention and appear in the record's `automated_flags`
+  field, but never substitute for a human score and never set `threshold_result` on their own.
+
+No role may accept a risk involving public licensing, private corpus handling, destructive data migration, or a
+permanent quality/capability tradeoff (see `RISKS.md` "Risk acceptance") — that remains the owner's alone even if a
+delegated reviewer scored the video.
+
+### Scoring thresholds
+
+Compute `overall_score` as the unweighted mean of all scored dimensions for the relevant scope (scene-level scores
+average into a video-level score; visual/audio/narrative each report their own sub-mean plus the combined mean).
+Thresholds:
+
+| `overall_score` | `threshold_result` | Meaning |
+|---:|---|---|
+| ≥ 4.0 | `accepted` | Ships as-is; no repair pass required. |
+| ≥ 3.0 and < 4.0 | `needs_repair` | At least one dimension scored ≤ 2; route to the bounded repair loop (`quality/repair.py`, capped at the configured `repair_passes`) and re-review after. |
+| < 3.0 | `rejected` | Fundamental problem (wrong footage, broken audio, factual/narrative error); do not repair-loop indefinitely — return to an earlier stage (storyboard/render) instead of iterating on quality passes. |
+
+A single dimension scoring 1 ("fails the goal") forces at most `needs_repair` even if the mean would otherwise
+round up to `accepted` — a strong overall average must never mask one broken dimension.
+
+### Disagreement handling
+
+When a secondary reviewer's scores differ from the primary reviewer's by more than 1 point on any dimension, or the
+two reviewers land in different `threshold_result` bands:
+
+1. Do not silently average and move on. Record both score sets in full.
+2. The primary reviewer and secondary reviewer discuss the specific disagreeing dimension(s) against the rubric
+   text above, not general impressions.
+3. If they reach consensus, record the agreed score with both reviewers' names/roles and a one-line note on what
+   changed their view.
+4. If they do not reach consensus, the primary reviewer's score is authoritative for `threshold_result`, but the
+   disagreement and the secondary reviewer's dissenting score are both preserved permanently in the record's
+   `disagreement` field — never overwritten or deleted.
+5. Recurring disagreement on the same dimension across multiple projects is a signal the rubric text itself is
+   ambiguous and should be revised (open a `DOC` correction, do not keep re-litigating case by case).
+
+### Immutable E5 acceptance records
+
+An E5 record is content-addressed and write-once, matching the project's existing immutability conventions
+(artifact IDs, document revision history): once written, a record is never edited or deleted, only superseded by a
+new record referencing it (e.g. after a repair pass and re-review).
+
+- Schema: `docs/schemas/e5-acceptance-record.schema.json`.
+- Example (synthetic, illustrative only — not a real acceptance claim):
+  `docs/schemas/e5-acceptance-record.example.json`.
+- Verification: `docs/schemas/verify_e5_example.py` recomputes `content_hash` and `record_id` from the example
+  record's own content and confirms they match the stored values byte-for-byte — concrete, runnable proof that the
+  format is genuinely content-addressed, not just described as such. Run with
+  `python docs/schemas/verify_e5_example.py`.
+- Storage convention: one JSON file per record, named `e5_<sha256 of the record's canonical content>.json`, under
+  the project's managed workspace (e.g. `<workspace>/projects/<project_id>/acceptance/`) — never under Git for
+  records that reference private media; a redacted/hash-only copy may be committed for a golden project used as a
+  release gate.
+- `content_hash` is the SHA-256 of the record's canonical JSON (sorted keys, compact separators) with the
+  `content_hash` field itself excluded — the same tamper-evidence pattern Miller already uses for artifacts and
+  documents (`artifacts.py`, `db.py`).
+- A record that supersedes an earlier one sets `supersedes` to the earlier record's ID; the earlier record is never
+  mutated in place.
+
 ## Statistical and reporting rules
 
 - Never tune on the hidden acceptance subset and report it as generalization.

@@ -2,7 +2,7 @@
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
   "updated_at": "2026-07-29",
-  "active_sprint": "QAE-001",
+  "active_sprint": "ARC-002",
   "completed_sprints": [
     "INV-001",
     "INV-002",
@@ -14,7 +14,8 @@
     "ARC-003",
     "AUD-001",
     "SEC-001",
-    "SEC-002"
+    "SEC-002",
+    "QAE-001"
   ],
   "accepted_evidence": {
     "repository_inventory": "E2",
@@ -26,6 +27,7 @@
     "alignment_worker_environment_spec": "E3",
     "archive_path_image_security_fuzzing": "E3",
     "dependency_sbom_license_review": "E3",
+    "human_quality_rubric": "E2",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
@@ -68,18 +70,16 @@
     "ADV-002": "Benchmark SAM/depth-style advanced motion on selected scenes with artifact and hardware kill criteria.",
     "ADV-003": "Open exported timeline/media in a supported NLE, compare frame timing, edits, transitions, and relink portability."
   },
-  "next_unblocked": [
-    "QAE-001"
-  ],
+  "next_unblocked": [],
   "legacy_state": {
     "source": "SPRINT_STATE.json before definitive plan",
     "active_sub_sprint": "4.2",
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "sec002_dependency_license_review_implemented_pending_owner_review",
-    "last_safe_checkpoint": "SEC-002 ran uv audit --locked (0 vulnerabilities across 45 packages), generated docs/SBOM.json from real installed-package metadata (48 packages, no GPL-family license found), captured the real FFmpeg build configuration (GPL v3 build, bundling caveat recorded as RISKS.md RSK-025), and wrote docs/NOTICES.md and a supply-chain policy in docs/SEC-002-AUDIT.md; no production code changed; local analysis-station review agreed 4/5 criteria, coordinator corrected a self-contradictory false-negative on the vulnerability-scan criterion (Head Chef run run-5a83e4b732d0a1ba, accepted by coordinator).",
-    "next_exact_action": "Owner/independent review of ARC-001, ARC-003, AUD-001, SEC-001, and SEC-002 evidence, then run QAE-001 human quality rubric and acceptance records (deps DOC-002, complete) -- the only sprint in the plan not blocked on ENV-002's missing script/narration fixture or a real model-worker installation.",
+    "status": "all_owner_independent_sprints_complete_awaiting_owner_decision",
+    "last_safe_checkpoint": "QAE-001 finalized the human quality rubric in EVALUATION_PLAN.md (visual/audio dimensions, reviewer roles, scoring thresholds, disagreement handling) plus an immutable content-addressed E5 acceptance-record schema, synthetic example, and a committed verification script (docs/schemas/verify_e5_example.py) that recomputes and confirms the content hash; no production code changed; local analysis-station review agreed 4/6 criteria, coordinator corrected a false-negative (visual/audio sections do exist) and addressed a fair point by adding the verification script (Head Chef run run-cbcbbb59c020276d, accepted by coordinator). This closes out every sprint whose prerequisites were satisfiable without further owner input: ARC-001, ARC-003, AUD-001, SEC-001, SEC-002, QAE-001.",
+    "next_exact_action": "Owner/independent review of all six sprints' evidence. Every remaining ready-status sprint (ARC-002, ARC-004, ANL-005, RET-001, RET-004, STO-001, VID-003, UX-001) transitively depends on the still-missing ENV-002 script/narration fixture or a real model-worker install; active_sprint points at ARC-002 as the earliest such item, but it cannot start until ENV-003's real no-AI baseline acceptance is unblocked, which itself needs the ENV-002 fixture.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -177,7 +177,7 @@
       "id": "ARC-002",
       "title": "Durable baseline DAG integration",
       "roadmap": "R3",
-      "status": "ready",
+      "status": "active",
       "dependencies": [
         "ARC-001",
         "ENV-003"
@@ -520,7 +520,7 @@
       "id": "QAE-001",
       "title": "Human quality rubric and acceptance records",
       "roadmap": "R11",
-      "status": "active",
+      "status": "completed",
       "dependencies": [
         "DOC-002"
       ]

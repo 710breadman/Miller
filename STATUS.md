@@ -5,9 +5,9 @@ Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations/backup/restore (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`); adversarial archive/path/image fuzzing, localhost-boundary and log-sanitization verification (`SEC-001`); and a dependency SBOM, vulnerability scan, and FFmpeg build/license record (`SEC-002`) — all five pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations/backup/restore (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`); adversarial archive/path/image fuzzing, localhost-boundary and log-sanitization verification (`SEC-001`); a dependency SBOM, vulnerability scan, and FFmpeg build/license record (`SEC-002`); and a finalized human quality rubric with reviewer roles, scoring thresholds, and an immutable E5 acceptance-record schema (`QAE-001`) — all six pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
 
-Active sprint: **`QAE-001 — Human quality rubric and acceptance records`** — currently the only sprint in the plan not blocked on `ENV-002`'s missing script/narration fixture or a real model-worker installation.
+**Every sprint whose prerequisites were satisfiable without further owner input is now done.** `active_sprint` points at `ARC-002 — Durable baseline DAG integration` as the next architectural item, but it cannot actually start: its dependency `ENV-003` is blocked, and every other remaining `ready`-status sprint has the same shape of blocker. See `HANDOFF.md` "Exact next action" for the three concrete unblocking options.
 
 ## Preserved strengths
 
@@ -29,9 +29,9 @@ Active sprint: **`QAE-001 — Human quality rubric and acceptance records`** —
 
 ## Next
 
-Owner/independent review of `ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`, and
-`SEC-002` evidence, then implement and verify `QAE-001` (human quality
-rubric and acceptance records). After that, further sprint progress needs
-either the `ENV-002` script/narration fixture or an owner decision to
-install real model workers. The full plan is indexed by
-`docs/PLANNING_INDEX.md`.
+Owner/independent review of `ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`,
+`SEC-002`, and `QAE-001` evidence. Further sprint progress needs one of:
+the owner supplying/approving the `ENV-002` script/narration fixture; an
+owner decision to install a real model worker (WhisperX, embedding, or
+VLM); or the `OD-001` software-license decision. The full plan is indexed
+by `docs/PLANNING_INDEX.md`.
