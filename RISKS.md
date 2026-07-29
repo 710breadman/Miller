@@ -28,6 +28,7 @@ Scores: probability (P) and impact (I), 1–5. Priority = P × I.
 | RSK-022 | Long videos exceed time/disk or fail late | 4 | 4 | 16 | proxies, scene cache, preflight disk/time, partial render | production fixture; performance/video |
 | RSK-023 | Music/quotes/copyright create distribution concerns | 3 | 4 | 12 | user-supplied assets, provenance, no bundled copyrighted media | release/content decision; owner |
 | RSK-024 | Plan becomes too large for Gemma 12B | 3 | 4 | 12 | one card, narrow files, compact handoff, split high-context cards | context pressure; sprint planner |
+| RSK-025 | Bundling the installed FFmpeg binary into a release would carry GPLv3 obligations (confirmed `--enable-gpl --enable-version3` build, `SEC-002`) | 2 | 3 | 6 | keep FFmpeg subprocess-invoked and system-installed, not bundled; rebuild LGPL-only if bundling is ever desired | release packaging decision; `REL-001`/`REL-002` |
 
 ## Risk acceptance
 

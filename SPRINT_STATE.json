@@ -2,7 +2,7 @@
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
   "updated_at": "2026-07-29",
-  "active_sprint": "SEC-002",
+  "active_sprint": "QAE-001",
   "completed_sprints": [
     "INV-001",
     "INV-002",
@@ -13,7 +13,8 @@
     "ARC-001",
     "ARC-003",
     "AUD-001",
-    "SEC-001"
+    "SEC-001",
+    "SEC-002"
   ],
   "accepted_evidence": {
     "repository_inventory": "E2",
@@ -24,6 +25,7 @@
     "worker_protocol_lease_admission": "E3",
     "alignment_worker_environment_spec": "E3",
     "archive_path_image_security_fuzzing": "E3",
+    "dependency_sbom_license_review": "E3",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
@@ -67,7 +69,6 @@
     "ADV-003": "Open exported timeline/media in a supported NLE, compare frame timing, edits, transitions, and relink portability."
   },
   "next_unblocked": [
-    "SEC-002",
     "QAE-001"
   ],
   "legacy_state": {
@@ -76,9 +77,9 @@
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "sec001_security_fuzzing_implemented_pending_owner_review",
-    "last_safe_checkpoint": "SEC-001 34 adversarial tests (CBZ/path/image fuzzing, localhost boundary, log secret sanitization, subprocess failure surfaces, no-shell=True static check) added in tests/test_security.py; fixed an XSS-prone unescaped scene.id in web/app.py and a missing structured-error extraction in retrieval/embedding_worker.py; ruff, strict mypy (84 files), full pytest (129 passed, 1 skip), and wheel/sdist build passed locally; local analysis-station review agreed 4/5 areas met, coordinator corrected a false-negative on CBZ-fuzzing coverage (Head Chef run run-2aead45e6598cf9c, accepted by coordinator).",
-    "next_exact_action": "Owner/independent review of ARC-001, ARC-003, AUD-001, and SEC-001 evidence, then run SEC-002 dependency/model/data/SBOM/license review (deps INV-003, complete); preserve ENV-002 script/narration half and license decisions as owner-gated.",
+    "status": "sec002_dependency_license_review_implemented_pending_owner_review",
+    "last_safe_checkpoint": "SEC-002 ran uv audit --locked (0 vulnerabilities across 45 packages), generated docs/SBOM.json from real installed-package metadata (48 packages, no GPL-family license found), captured the real FFmpeg build configuration (GPL v3 build, bundling caveat recorded as RISKS.md RSK-025), and wrote docs/NOTICES.md and a supply-chain policy in docs/SEC-002-AUDIT.md; no production code changed; local analysis-station review agreed 4/5 criteria, coordinator corrected a self-contradictory false-negative on the vulnerability-scan criterion (Head Chef run run-5a83e4b732d0a1ba, accepted by coordinator).",
+    "next_exact_action": "Owner/independent review of ARC-001, ARC-003, AUD-001, SEC-001, and SEC-002 evidence, then run QAE-001 human quality rubric and acceptance records (deps DOC-002, complete) -- the only sprint in the plan not blocked on ENV-002's missing script/narration fixture or a real model-worker installation.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -519,7 +520,7 @@
       "id": "QAE-001",
       "title": "Human quality rubric and acceptance records",
       "roadmap": "R11",
-      "status": "ready",
+      "status": "active",
       "dependencies": [
         "DOC-002"
       ]
@@ -556,7 +557,7 @@
       "id": "SEC-002",
       "title": "Dependency, model, data, SBOM, and license review",
       "roadmap": "R12",
-      "status": "active",
+      "status": "completed",
       "dependencies": [
         "INV-003"
       ]

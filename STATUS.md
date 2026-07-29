@@ -5,9 +5,9 @@ Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`); and adversarial archive/path/image fuzzing, localhost-boundary and log-sanitization verification, and subprocess-failure-surface tests (`SEC-001`) — all four pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations/backup/restore (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`); adversarial archive/path/image fuzzing, localhost-boundary and log-sanitization verification (`SEC-001`); and a dependency SBOM, vulnerability scan, and FFmpeg build/license record (`SEC-002`) — all five pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
 
-Active sprint: **`SEC-002 — Dependency, model, data, SBOM, and license review`**.
+Active sprint: **`QAE-001 — Human quality rubric and acceptance records`** — currently the only sprint in the plan not blocked on `ENV-002`'s missing script/narration fixture or a real model-worker installation.
 
 ## Preserved strengths
 
@@ -29,6 +29,9 @@ Active sprint: **`SEC-002 — Dependency, model, data, SBOM, and license review`
 
 ## Next
 
-Owner/independent review of `ARC-001`, `ARC-003`, `AUD-001`, and `SEC-001`
-evidence, then implement and verify `SEC-002` (dependency/model/data/SBOM/
-license review). The full plan is indexed by `docs/PLANNING_INDEX.md`.
+Owner/independent review of `ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`, and
+`SEC-002` evidence, then implement and verify `QAE-001` (human quality
+rubric and acceptance records). After that, further sprint progress needs
+either the `ENV-002` script/narration fixture or an owner decision to
+install real model workers. The full plan is indexed by
+`docs/PLANNING_INDEX.md`.

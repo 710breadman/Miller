@@ -128,7 +128,7 @@ FFmpeg render → quality checks → bounded repair
 | Portable package | project export/import | implemented contract | `portable/` | E2 manifest checks | large project, missing optional assets, cross-machine proof | `REL-001` |
 | Windows install/launch | simple local deployment | scripts exist | `*.ps1`, `*.cmd` | syntax/packaging evidence | actual current machine and path proof | `ENV-001`, `REL-001` |
 | CI | repeatable quality gates | implemented | `.github/workflows/ci.yml` | Linux/Windows matrix configured | current run inspection and artifact retention policy | `QAE-003` |
-| Licensing | allow safe distribution | unresolved | `docs/LICENSE_DECISION.md`, matrices | boundaries documented | owner license, dependency/model notices, SBOM | `SEC-002`, `REL-002` |
+| Licensing | allow safe distribution | Miller's own license still unresolved; dependency layer audited | `docs/LICENSE_DECISION.md`, matrices, `docs/SBOM.json`, `docs/NOTICES.md` | E3 SBOM + vulnerability scan + FFmpeg build/license record (`SEC-002`, local Windows run) | owner license decision (`OD-001`), model/data terms once installed, release-time re-scan | `REL-002` |
 
 ## Current gap classification
 
@@ -193,6 +193,19 @@ gained in `AUD-001`). Also discovered, and documented in the tests themselves, t
 normalizes a literal backslash in a member name to a forward slash on *read* regardless of raw header bytes, meaning
 Miller's own `"\\" in name` rejection in `comics/cbz.py` can never actually be reached via any `ZipFile`-mediated
 read — defensive dead code in practice, kept in case that platform/version behavior ever changes.
+
+`SEC-002` reached E3 on this local Windows machine: ran `uv audit --locked` (an experimental built-in `uv`
+subcommand, no new tool installed) against the resolved dependency set — `Found no known vulnerabilities and no
+adverse project statuses in 45 packages`; generated `docs/SBOM.json`, a machine-readable SBOM from
+`importlib.metadata` over all 48 actually-installed packages (47 resolved a license via each package's PEP 639
+`License-Expression` field or classifier; the 48th is Miller's own package), confirming no GPL-family license among
+them; captured the real, full `ffmpeg -version` build configuration on this machine and identified that the
+installed `gyan.dev` "full" build is licensed **GPL v3** (`--enable-gpl --enable-version3`), which is fine under the
+current subprocess-invocation architecture but would carry bundling obligations if a future release packages that
+binary directly (new `RISKS.md` RSK-025); and wrote `docs/NOTICES.md` and a supply-chain policy in
+`docs/SEC-002-AUDIT.md`. No production code was changed. Remaining: owner license decision (`OD-001`), model/data
+terms once model workers are actually installed, and a fresh scan at release time (vulnerability databases and
+dependency versions change).
 
 ### Partially implemented
 
