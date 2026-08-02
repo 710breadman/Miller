@@ -1,13 +1,13 @@
 # Project status
 
-Updated: **2026-07-29**
+Updated: **2026-08-02**
 Planning revision: `2026-07-21-definitive`
 
 ## Current
 
-Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance, now including ordered database migrations/backup/restore (`ARC-001`); a versioned worker protocol with lease/heartbeat, a stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`); a reproducible, isolated alignment worker environment spec with probe/unload/CPU-fallback (`AUD-001`); adversarial archive/path/image fuzzing, localhost-boundary and log-sanitization verification (`SEC-001`); a dependency SBOM, vulnerability scan, and FFmpeg build/license record (`SEC-002`); and a finalized human quality rubric with reviewer roles, scoring thresholds, and an immutable E5 acceptance-record schema (`QAE-001`) — all six pending owner/independent review. It does not yet have real-comic, real-model, retrieval-winner, human-quality, or clean-release acceptance.
+Miller has an E2-verified software foundation plus E3 synthetic/local Windows acceptance. Independent Codex review accepted `ARC-001`, `ARC-003`, `SEC-001`, `SEC-002`, and `QAE-001`; review corrections removed unsafe inline-JavaScript interpolation from the editor and made E5 record validation enforce roles, scores, thresholds, disagreements, and hashes. `AUD-001` remains E2/incomplete: its worker contract works, but `torch>=2.1` and `stable-ts>=2.16` are not reproducible pins and no real environment was installed. Miller still lacks real-comic, real-model, retrieval-winner, human-quality, and clean-release acceptance.
 
-**Every sprint whose prerequisites were satisfiable without further owner input is now done.** `active_sprint` points at `ARC-002 — Durable baseline DAG integration` as the next architectural item, but it cannot actually start: its dependency `ENV-003` is blocked, and every other remaining `ready`-status sprint has the same shape of blocker. See `HANDOFF.md` "Exact next action" for the three concrete unblocking options.
+No remaining critical-path sprint can start without owner input. `active_sprint` points at `ARC-002 — Durable baseline DAG integration`, but dependency `ENV-003` needs the missing script/narration fixture. `AUD-001` also needs explicit authorization for platform/CUDA selection and heavy worker installation.
 
 ## Preserved strengths
 
@@ -29,9 +29,6 @@ Miller has an E2-verified software foundation plus E3 synthetic/local Windows ac
 
 ## Next
 
-Owner/independent review of `ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`,
-`SEC-002`, and `QAE-001` evidence. Further sprint progress needs one of:
-the owner supplying/approving the `ENV-002` script/narration fixture; an
-owner decision to install a real model worker (WhisperX, embedding, or
-VLM); or the `OD-001` software-license decision. The full plan is indexed
-by `docs/PLANNING_INDEX.md`.
+Independent review is complete. Further sprint progress needs one of: owner-supplied/approved `ENV-002`
+script/narration; authorization to pin and install a real model worker (WhisperX, embedding, or VLM); or the
+`OD-001` software-license decision. The full plan is indexed by `docs/PLANNING_INDEX.md`.

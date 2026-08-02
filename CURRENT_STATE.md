@@ -115,7 +115,7 @@ FFmpeg render → quality checks → bounded repair
 | Hybrid ranking | combine lexical and vector scores | simple min-max fusion | `retrieval/hybrid.py` | E2 contract tests | calibration, RRF, rerank, query classes | `RET-007` |
 | Retrieval evaluation | choose a winner by evidence | framework present | `retrieval/benchmark.py`, `metrics.py` | E2 metric calculations | 100–300 private labels and real runs | `RET-001`–`RET-007` |
 | Audio probe/normalize | inspect and prepare narration | implemented contracts | `audio/probe.py`, `normalize.py` | E2 FFmpeg/synthetic tests | owner narration acceptance and failure handling | `AUD-002` |
-| Alignment | word/beat timing | external contract + uniform fallback | `audio/whisper_worker.py`, `audio/worker/align_worker.py`, `uniform.py` | E3 reproducible worker environment spec, versioned probe, unload, CPU fallback (`AUD-001`, local Windows run) | installed WhisperX/stable-ts, real accuracy and drift measurement | `AUD-002` |
+| Alignment | word/beat timing | external contract + uniform fallback | `audio/whisper_worker.py`, `audio/worker/align_worker.py`, `uniform.py` | E2 worker contract, versioned probe, unload, CPU fallback | exact torch/stable-ts pins, installed environment, real accuracy and drift measurement | `AUD-001`, `AUD-002` |
 | Beat segmentation | turn alignment/script into beats | implemented heuristics | `audio/beats.py` | E2 data tests | semantic beat intent and pacing validation | `STO-001` |
 | Storyboard builder | choose candidates and scene timing | functional heuristic | `storyboard/builder.py` | E2 synthetic plan tests | semantic retrieval, panel selection, global sequence optimization | `STO-002`, `STO-003` |
 | Shot/motion planning | focus, crop, movement, transitions | simple heuristics | `storyboard/builder.py`, `video/ffmpeg.py` | E2 command/render tests | composition-aware safe zones and emotional pacing | `STO-004` |
@@ -179,15 +179,15 @@ locally. The existing external worker adapters (`audio/whisper_worker.py`,
 `retrieval/embedding_worker.py`) do not yet route through this protocol --
 that integration is `ANL-005`/`AUD-001`/`RET-004` work.
 
-`SEC-001` reached E3 on this local Windows machine: 34 new adversarial tests in `tests/test_security.py` fuzz CBZ
+`SEC-001` reached E3 on this local Windows machine: adversarial tests in `tests/test_security.py` fuzz CBZ
 archive/path/image inputs (path traversal, absolute paths, Windows drive-letter paths, duplicate case-insensitive
 paths, encrypted entries via real ZIP-header byte patching, oversized/zero-byte entries, total-size limits, a
 zip-bomb-style compression ratio, entry-count limits, corrupted images, invalid archives), verify the localhost-only
 boundary at both the CLI argparse layer (`--host` `choices`) and the `MillerSettings` validator layer, confirm
 `attempt_guard`/`lease_token` secrets are never written to project logs or DB events, exercise missing-binary and
 malformed-JSON failure surfaces for both external worker adapters, and statically confirm no `shell=True`/`os.system`
-usage anywhere in the core package. Found and fixed two real issues along the way: an XSS-prone unescaped `scene.id`
-interpolation into `onclick`/`onchange` JS-attribute strings in `web/app.py`'s embedded editor, and a missing
+usage anywhere in the core package. Found and fixed two real issues along the way: untrusted scene data is now
+assigned through DOM text/value properties and event listeners rather than inline JavaScript attributes, and a missing
 structured-error-message extraction in `retrieval/embedding_worker.py` (now matches the pattern `whisper_worker.py`
 gained in `AUD-001`). Also discovered, and documented in the tests themselves, that Python's `zipfile` module
 normalizes a literal backslash in a member name to a forward slash on *read* regardless of raw header bytes, meaning
@@ -217,8 +217,8 @@ optional secondary reviewer, AI self-review as advisory-only); defined numeric s
 disagreement-handling process (record both score sets, discuss against rubric text, preserve dissent permanently if
 unresolved); and specified an immutable, content-addressed E5 acceptance-record format
 (`docs/schemas/e5-acceptance-record.schema.json`, a synthetic example, and `docs/schemas/verify_e5_example.py` --
-a runnable script that recomputes `content_hash`/`record_id` from the example's own content and confirms
-byte-for-byte reproducibility). No production `src/miller` code was changed. Remaining: this rubric has not yet
+a runnable script that validates record shape and cross-field rules, then recomputes `content_hash`/`record_id`
+from the example's own content and confirms byte-for-byte reproducibility). Remaining: this rubric has not yet
 been exercised against a real rendered project — that requires the `ENV-002` script/narration fixture and an actual
 render.
 
@@ -273,8 +273,9 @@ render.
 
 ## Recommended immediate action
 
-`ARC-001`, `ARC-003`, `AUD-001`, `SEC-001`, `SEC-002`, and `QAE-001` are all implemented and locally verified (see
-above); all six still need independent human/owner review before their evidence is treated as final. Per
+Independent Codex review accepted `ARC-001`, `ARC-003`, `SEC-001`, `SEC-002`, and `QAE-001` after bounded security
+and E5-verifier corrections. `AUD-001` remains incomplete/E2 because its dependency ranges are not reproducible
+pins and no real worker environment was installed. Per
 `SPRINT_STATE.json`'s dependency graph, **every remaining `ready`-status sprint now transitively depends on the
 still-missing script/narration half of `ENV-002`** (`ANL-001` gates `ANL-005`/`RET-001`/`RET-004`; `ENV-003` gates
 `ARC-002`, which in turn gates `ARC-004`/`STO-001`/`UX-001`/`VID-003`). The concrete next action is an owner

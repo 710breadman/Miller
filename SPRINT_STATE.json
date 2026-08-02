@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
-  "updated_at": "2026-07-29",
+  "updated_at": "2026-08-02",
   "active_sprint": "ARC-002",
   "completed_sprints": [
     "INV-001",
@@ -12,7 +12,6 @@
     "DOC-001",
     "ARC-001",
     "ARC-003",
-    "AUD-001",
     "SEC-001",
     "SEC-002",
     "QAE-001"
@@ -24,7 +23,7 @@
     "windows_target": "E3",
     "database_migrations_restore": "E3",
     "worker_protocol_lease_admission": "E3",
-    "alignment_worker_environment_spec": "E3",
+    "alignment_worker_environment_spec": "E2",
     "archive_path_image_security_fuzzing": "E3",
     "dependency_sbom_license_review": "E3",
     "human_quality_rubric": "E2",
@@ -49,6 +48,7 @@
     "RET-005": "Run all eligible candidates on the same corpus/labels and record metrics, index time/size, latency, RAM/VRAM, and terms.",
     "RET-006": "Compare Qdrant service/local and sqlite-vec for build/rebuild, filtering, portability, concurrency, corruption, and packaging.",
     "RET-007": "Benchmark fusion/calibration/rerank; write authoritative winner ADR and fallback policy.",
+    "AUD-001": "The worker contract passes synthetic tests, but torch>=2.1 and stable-ts>=2.16 are ranges, not a reproducible pinned environment; platform/CUDA selection and installation require owner authorization.",
     "AUD-002": "Evaluate word timing, mismatch detection, drift, silence, retakes, fallback tier, latency, and VRAM on owner narration.",
     "STO-002": "Produce traceable top candidates and alternatives for each beat across pages/panels with filters and cleanup cost.",
     "STO-003": "Optimize all scene choices jointly for relevance, continuity, reuse, quality, pacing, era, and owner locks.",
@@ -77,9 +77,9 @@
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "all_owner_independent_sprints_complete_awaiting_owner_decision",
-    "last_safe_checkpoint": "QAE-001 finalized the human quality rubric in EVALUATION_PLAN.md (visual/audio dimensions, reviewer roles, scoring thresholds, disagreement handling) plus an immutable content-addressed E5 acceptance-record schema, synthetic example, and a committed verification script (docs/schemas/verify_e5_example.py) that recomputes and confirms the content hash; no production code changed; local analysis-station review agreed 4/6 criteria, coordinator corrected a false-negative (visual/audio sections do exist) and addressed a fair point by adding the verification script (Head Chef run run-cbcbbb59c020276d, accepted by coordinator). This closes out every sprint whose prerequisites were satisfiable without further owner input: ARC-001, ARC-003, AUD-001, SEC-001, SEC-002, QAE-001.",
-    "next_exact_action": "Owner/independent review of all six sprints' evidence. Every remaining ready-status sprint (ARC-002, ARC-004, ANL-005, RET-001, RET-004, STO-001, VID-003, UX-001) transitively depends on the still-missing ENV-002 script/narration fixture or a real model-worker install; active_sprint points at ARC-002 as the earliest such item, but it cannot start until ENV-003's real no-AI baseline acceptance is unblocked, which itself needs the ENV-002 fixture.",
+    "status": "independent_review_complete_awaiting_owner_inputs",
+    "last_safe_checkpoint": "Independent Codex review accepted ARC-001, ARC-003, SEC-001, SEC-002, and QAE-001 after correcting two review defects: the embedded editor now uses DOM text/value properties plus event listeners instead of interpolating untrusted scene data into inline JavaScript handlers, and the E5 verifier now enforces record shape, reviewer roles, score ranges, calculated mean/threshold, disagreement detail, and content identity. Full gate passed: Ruff, strict Mypy, 133 passed/1 skipped, build, planning validator, E5 verifier, JavaScript syntax check, and git diff check. AUD-001 was not accepted as complete because its torch and stable-ts requirements remain version ranges rather than a reproducible pinned environment; its worker contract remains E2.",
+    "next_exact_action": "Supply or approve the ENV-002 script/narration fixture to unblock ENV-003 and ARC-002, or explicitly authorize platform/CUDA selection plus installation of a fully pinned alignment, embedding, or VLM worker. AUD-001 remains blocked until its environment is reproducibly pinned and verified. OD-001 software-license selection remains owner-only.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -354,7 +354,7 @@
       "id": "AUD-001",
       "title": "Pinned alignment worker environments",
       "roadmap": "R7",
-      "status": "completed",
+      "status": "blocked",
       "dependencies": [
         "ARC-003",
         "ENV-001"

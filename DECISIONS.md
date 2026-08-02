@@ -24,17 +24,18 @@ Decision log revision: **2026-07-21-definitive**
 
 ### D-005 implementation note (`AUD-001`)
 
-`AUD-001` implemented D-005 for the alignment worker: `src/miller/audio/worker/align_worker.py` is a new, standalone
+`AUD-001` partially implemented D-005 for the alignment worker: `src/miller/audio/worker/align_worker.py` is a new, standalone
 process (no import of the `miller` package) implementing the `probe`/`align`/`unload` JSON protocol, with
-`src/miller/audio/worker/requirements.txt` documenting its pinned, isolated environment (WhisperX pinned to the
-exact revision already recorded in `docs/upstream-lock.json`; stable-ts pinned only by a minimum version, with no
-prior recorded revision to pin exactly -- confirm and tighten when the environment is actually built, `AUD-002`).
+`src/miller/audio/worker/requirements.txt` documenting an intended isolated environment. WhisperX is pinned to the
+exact revision already recorded in `docs/upstream-lock.json`, but `torch>=2.1` and `stable-ts>=2.16` are ranges.
+Independent review therefore classifies this as an E2 worker contract, not the reproducible pinned environment
+required to complete `AUD-001`; platform/CUDA selection and exact locks remain owner-gated correction work.
 `probe` honestly reports today's real state on this machine (torch/whisperx/stable-ts all absent) rather than a
 simulated fixture. `ExternalAlignmentWorker.align()` in `whisper_worker.py` now defaults to `device="auto"`,
 probing first and falling back to CPU (`int8`) when CUDA is unavailable, while an explicit `device`/`compute_type`
 still bypasses that resolution. Covered by 8 new tests in `tests/test_audio.py`; full local gate (Ruff, strict Mypy
 across 84 files, Pytest, build) passed. No heavy ML dependency was installed or downloaded in this session -- that
-remains explicit, owner-gated work per OD-007. Pending owner/independent review; see `HANDOFF.md`.
+remains explicit, owner-gated work per OD-007. Independent review completed 2026-08-02; see `HANDOFF.md`.
 
 ### D-005 implementation note (`ARC-003`)
 
