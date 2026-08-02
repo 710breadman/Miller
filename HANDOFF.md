@@ -37,6 +37,10 @@ Active sprint: **`ENV-003` — Real no-AI baseline acceptance**
 - Repository housekeeping: quarantined a stray duplicated `Miller/.head-chef/` directory; added `.gemma/`,
   `.head-chef/`, and `_quarantine/` to `.gitignore`; committed the previously-untracked `docs/INV-003-AUDIT.md`,
   `sprints/SPRINTS.json`, and the pre-existing-but-uncommitted `DOC-001` documentation reconciliation.
+- Build safety: `pyproject.toml` now explicitly excludes local runtime/cache/media/quarantine paths from source
+  distributions. A prior 186 MB sdist containing ignored `.miller` artifacts was moved intact to
+  `.miller/quarantine/sdist-private-artifact-20260802-1800/`; the replacement sdist is 326,877 bytes and its 264
+  paths contain none of the excluded directories.
 
 Independent Codex review on 2026-08-02 inspected all six commits, artifacts, requirements, and current source. After
 the bounded SEC-001/QAE-001 corrections: `uv sync --frozen --extra dev --extra web --extra export --extra retrieval`,

@@ -38,6 +38,22 @@ miller = "miller.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/miller"]
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.miller",
+  "/.miller-backups",
+  "/.source-audit",
+  "/.venv",
+  "/.gemma",
+  "/.head-chef",
+  "/_quarantine",
+  "/_userscripts",
+  "/cache",
+  "/data",
+  "/projects",
+  "/renders",
+]
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]

@@ -37,6 +37,8 @@ No capability may be called “complete and verified” without naming the highe
 - Revisioned storyboard edits support locks, alternatives, optimistic conflict detection, history, and dependent-stage invalidation.
 - A synthetic no-AI baseline reaches an MP4 when FFmpeg is available.
 - Optional heavy dependencies are kept outside the core import path.
+- Source distributions explicitly exclude local workspaces, caches, owner scripts/media, and quarantine directories;
+  a clean `uv build` archive inspection found no private/runtime paths.
 - `ENV-002` has an owner-approved, gitignored local fixture: 10 real comics plus a 3,524-word Green Lantern script
   and 28:15.219 edited narration WAV. Source hashes and AU4 SQLite integrity were verified before/after managed
   conversion on Windows; this is E3 fixture/integrity evidence, not render-quality evidence.
