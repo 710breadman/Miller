@@ -295,6 +295,20 @@ def test_settings_accept_loopback_bind_hosts() -> None:
         assert MillerSettings(bind_host=good_host).bind_host == good_host
 
 
+def test_editor_never_interpolates_storyboard_values_into_html_handlers() -> None:
+    """Untrusted scene data must reach DOM text/value properties, not executable HTML."""
+
+    from miller.web.app import _EDITOR_HTML
+
+    assert 'document.getElementById("scenes").innerHTML' not in _EDITOR_HTML
+    assert "onclick=\"command('replace-asset'" not in _EDITOR_HTML
+    assert "onchange=\"command('motion'" not in _EDITOR_HTML
+    assert "onchange=\"command('transition'" not in _EDITOR_HTML
+    assert "onchange=\"command('music'" not in _EDITOR_HTML
+    assert 'button.addEventListener("click"' in _EDITOR_HTML
+    assert 'music.addEventListener("change"' in _EDITOR_HTML
+
+
 # ---------------------------------------------------------------------------
 # Log / event sanitization: secrets never get written to logs
 # ---------------------------------------------------------------------------
