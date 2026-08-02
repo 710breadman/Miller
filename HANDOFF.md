@@ -1,8 +1,8 @@
 # Miller handoff
 
-Status: **independent review accepted `ARC-001`, `ARC-003`, `SEC-001`, `SEC-002`, and `QAE-001`; `AUD-001` remains incomplete/E2; owner inputs still block critical path**
+Status: **`ENV-002` accepted at E3; `ENV-003` active; `ANL-001` ready; `AUD-001` remains incomplete/E2**
 Planning revision: `2026-07-21-definitive`  
-Active sprint: **none** — every remaining sprint is blocked on an owner decision (see "Exact next action")
+Active sprint: **`ENV-003` — Real no-AI baseline acceptance**
 
 ## What was completed
 
@@ -11,9 +11,10 @@ Active sprint: **none** — every remaining sprint is blocked on an owner decisi
   validator, `docs/INV-003-AUDIT.md`, `DOC-001` control-document reconciliation (all prior sessions);
 - `ARC-001` ordered database migrations, preflight backup, `PRAGMA integrity_check`-based corruption detection, and
   a restore drill in `src/miller/db.py`;
-- `ENV-002` (comic portion only): a 10-issue real comic fixture manifest from the owner's `V:\Media\Comics` library
-  (hashes only, gitignored, never committed); discovered a real edge case — several `.cbz` files in the owner's
-  library are actually mislabeled 7-Zip/RAR archives;
+- `ENV-002`: an owner-approved, gitignored private fixture with 10 real comic issues, a 3,524-word Green Lantern
+  script, the edited AU4 narration project, and a managed 28:15.219 mono 44.1 kHz PCM WAV. Source hashes were
+  rechecked unchanged, AU4 SQLite integrity passed, and conversion provenance is recorded. No private media was
+  committed. Several library `.cbz` files are actually mislabeled 7-Zip/RAR archives;
 - `ARC-003` versioned worker protocol, lease/heartbeat, a stale-result guard, cooperative cancellation, timeout
   detection, typed error classes, and single-GPU admission in `src/miller/{db,models,workers}.py`;
 - `AUD-001` produced a standalone alignment worker contract, probe/unload operations, and CPU-fallback auto-device
@@ -49,6 +50,10 @@ verdicts each time (and, for `QAE-001`, adding a stronger verification script in
 point) — see each run's review note for specifics. Current independent verdict supersedes those coordinator-only
 verdicts where they conflict.
 
+Later on 2026-08-02, the owner supplied the missing `ENV-002` script and edited narration. Codex inspected the
+private manifest and source files, exported narration only from a byte-identical managed AU4 copy, verified the WAV
+probe/hash/levels, and rechecked source hashes unchanged. This closes `BLK-002` and advances `ENV-002` to E3.
+
 ## What was not done
 
 - no crash-mid-operation interruption drill for `ARC-001`, `ARC-003`, or `AUD-001` — deferred to `ENV-004`;
@@ -58,27 +63,16 @@ verdicts where they conflict.
 - `SEC-002` did not resolve Miller's own software license (`OD-001`) or model/data terms;
 - `QAE-001`'s rubric has not been exercised against any real rendered project — no real render exists yet;
 - no Windows long-path, antivirus, or RTX 3070 hardware-stress tests were run in this environment;
-- no real comics, narration, model workers, or subjective video gates were tested;
-- private comic paths/hashes were accessed (read-only) for the `ENV-002` manifest, but no script or narration
-  fixture has been supplied or approved yet, so `ENV-002` is only partially satisfied and remains `blocked`;
-- no owner acceptance of private fixtures, model installation, software license, or real-video quality exists;
+- no real baseline video, model worker, or subjective video gate has been tested yet;
+- owner acceptance now exists for the private `ENV-002` fixture, but not for model installation, software license,
+  or real-video quality;
 
 ## Exact next action
 
-**This is a genuine stopping point, not a scope-discipline artifact.** Independent technical review is complete.
-Per `SPRINT_STATE.json`'s dependency graph, every remaining
-`ready`-status sprint (`ARC-002`, `ARC-004`, `ANL-005`, `RET-001`, `RET-004`, `STO-001`, `VID-003`, `UX-001`)
-transitively depends on the still-missing script/narration half of `ENV-002`, or on an explicit decision to install
-a real model worker. Concretely, one of the following must happen before further bounded sprint-card work is
-possible:
-
-1. The owner supplies or approves a script + edited narration recording for at least one of the 10 comic fixtures
-   already recorded in `.miller/acceptance/ENV-002-fixture-manifest.json` — this unblocks `ANL-001` and, through it,
-   most of the `ANL`/`RET`/`STO` roadmap items.
-2. The owner explicitly authorizes platform/CUDA selection, exact dependency locking, and installation of a real
-   model worker (WhisperX/stable-ts, embedding model, or VLM) — heavy, multi-GB downloads deliberately not done
-   without that authorization (`OD-007`).
-3. The owner makes the `OD-001` software-license decision, which unblocks meaningful progress on `REL-002`.
+Run `ENV-003` using a managed 30–90 second excerpt of the approved Green Lantern script/WAV and one recorded Green
+Lantern comic fixture. Produce separate no-OCR and OCR MP4s, preserve commands/timing/hashes/ffprobe/warnings,
+manually inspect both, and recheck every source hash. Do not alter production code if the acceptance run finds a
+defect; record it and open the appropriate bounded card.
 
 ## Do not redo
 
@@ -90,10 +84,10 @@ call its environment pinned or complete until exact locks install and probe succ
 
 ## Safe fallback cards
 
-None remain unblocked without additional owner input (script/narration fixture, model-install authorization, or the
-license decision) — see "Exact next action" above.
+`ANL-001` is ready if `ENV-003` blocks. `AUD-001` still needs explicit authorization for a fully pinned heavy model
+environment; `OD-001` remains owner-only.
 
 ## Context startup
 
-Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ENV-001` card, this
+Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ENV-003` card, this
 handoff, and Git status. Do not load all sprint cards into Gemma context.

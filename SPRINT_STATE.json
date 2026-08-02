@@ -2,12 +2,13 @@
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
   "updated_at": "2026-08-02",
-  "active_sprint": "ARC-002",
+  "active_sprint": "ENV-003",
   "completed_sprints": [
     "INV-001",
     "INV-002",
     "DOC-002",
     "ENV-001",
+    "ENV-002",
     "INV-003",
     "DOC-001",
     "ARC-001",
@@ -27,16 +28,15 @@
     "archive_path_image_security_fuzzing": "E3",
     "dependency_sbom_license_review": "E3",
     "human_quality_rubric": "E2",
+    "approved_local_acceptance_fixture": "E3",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
     "clean_machine_release": "E0"
   },
   "blocked_sprints": {
-    "ENV-002": "Create a private manifest for a small varied comic/script/narration fixture without committing copyrighted media.",
-    "ENV-003": "Produce and manually inspect no-OCR and OCR baseline videos; preserve hashes, probes, timing, and warnings.",
     "ENV-004": "Exercise interruption, restart, long Windows paths, network/drive behavior, file locks, low disk, and a larger source.",
-    "ANL-001": "Define private corpus manifests, stable page/panel/region identities, versioned observations, annotations, and non-redistribution rules.",
+    "ARC-002": "Await ENV-003 real no-AI baseline acceptance before integrating the baseline with the durable DAG.",
     "ANL-002": "Benchmark current gutter baseline and selected learned/external detectors on stratified pages with accuracy and hardware reports.",
     "ANL-003": "Implement/evaluate page and panel reading order including manga RTL, captions, splashes, nested and irregular layouts.",
     "ANL-004": "Benchmark preprocessing and Tesseract/manga-ocr/optional PaddleOCR by language, typography, runtime, and retrieval value.",
@@ -70,16 +70,18 @@
     "ADV-002": "Benchmark SAM/depth-style advanced motion on selected scenes with artifact and hardware kill criteria.",
     "ADV-003": "Open exported timeline/media in a supported NLE, compare frame timing, edits, transitions, and relink portability."
   },
-  "next_unblocked": [],
+  "next_unblocked": [
+    "ANL-001"
+  ],
   "legacy_state": {
     "source": "SPRINT_STATE.json before definitive plan",
     "active_sub_sprint": "4.2",
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "independent_review_complete_awaiting_owner_inputs",
-    "last_safe_checkpoint": "Independent Codex review accepted ARC-001, ARC-003, SEC-001, SEC-002, and QAE-001 after correcting two review defects: the embedded editor now uses DOM text/value properties plus event listeners instead of interpolating untrusted scene data into inline JavaScript handlers, and the E5 verifier now enforces record shape, reviewer roles, score ranges, calculated mean/threshold, disagreement detail, and content identity. Full gate passed: Ruff, strict Mypy, 133 passed/1 skipped, build, planning validator, E5 verifier, JavaScript syntax check, and git diff check. AUD-001 was not accepted as complete because its torch and stable-ts requirements remain version ranges rather than a reproducible pinned environment; its worker contract remains E2.",
-    "next_exact_action": "Supply or approve the ENV-002 script/narration fixture to unblock ENV-003 and ARC-002, or explicitly authorize platform/CUDA selection plus installation of a fully pinned alignment, embedding, or VLM worker. AUD-001 remains blocked until its environment is reproducibly pinned and verified. OD-001 software-license selection remains owner-only.",
+    "status": "env_002_accepted_env_003_active",
+    "last_safe_checkpoint": "ENV-002 accepted at E3 on the local Windows machine. The owner supplied a 3,524-word Green Lantern script and an edited Audacity AU4 narration project. Codex verified source hashes, SQLite integrity, and a byte-identical managed working copy; exported a 28:15.219 mono 44.1 kHz PCM WAV; rechecked both source hashes unchanged; and recorded the private comic/script/narration fixture plus conversion provenance in the gitignored manifest. No private media was committed.",
+    "next_exact_action": "Run ENV-003 no-OCR and OCR baseline videos on a managed 30-90 second excerpt of the approved Green Lantern script/narration pair and a recorded Green Lantern comic fixture; preserve hashes, probes, timings, warnings, source-integrity results, and manual review.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -141,7 +143,7 @@
       "id": "ENV-002",
       "title": "Approved local acceptance fixture",
       "roadmap": "R2",
-      "status": "blocked",
+      "status": "completed",
       "dependencies": [
         "ENV-001"
       ]
@@ -150,7 +152,7 @@
       "id": "ENV-003",
       "title": "Real no-AI baseline acceptance",
       "roadmap": "R2",
-      "status": "blocked",
+      "status": "active",
       "dependencies": [
         "ENV-002"
       ]
@@ -177,7 +179,7 @@
       "id": "ARC-002",
       "title": "Durable baseline DAG integration",
       "roadmap": "R3",
-      "status": "active",
+      "status": "blocked",
       "dependencies": [
         "ARC-001",
         "ENV-003"
@@ -205,7 +207,7 @@
       "id": "ANL-001",
       "title": "Corpus, annotation, and observation schema",
       "roadmap": "R4",
-      "status": "blocked",
+      "status": "ready",
       "dependencies": [
         "ENV-002",
         "ARC-001"

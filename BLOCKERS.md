@@ -5,7 +5,6 @@ A blocker stops only the dependent sprint. It never stops unrelated work.
 | ID | Blocker | Affects | Owner action | Safe fallback work | Clear condition |
 |---|---|---|---|---|---|
 | BLK-001 | Actual Windows checkout/path not confirmed | local acceptance and packaging | confirm current repo/workspace locations | `INV-003`, `DOC-001`, `ARC-001`, `SEC-002` | `ENV-001` capability report stored |
-| BLK-002 | Comic portion resolved (10-issue manifest, `.miller/acceptance/ENV-002-fixture-manifest.json`, gitignored); script + edited narration for the same fixture still not supplied | real analysis/retrieval/visual tests | approve/supply a matching script + edited narration recording | schemas, synthetic fixtures, worker contracts | script + narration fixture manifest and hashes also exist |
 | BLK-003 | Human relevance labels absent | retrieval winner | label 100–300 queries | build label UI, BM25 fixture, embedding workers | validator reports target labels and coverage |
 | BLK-004 | RTX 3070 access required | VLM/embedding/alignment/NVENC benchmarks | run local benchmark jobs | CPU/fake worker contracts, test harnesses | report includes driver, VRAM, latency, peak memory |
 | BLK-005 | Alignment worker contract exists, but `torch>=2.1` and `stable-ts>=2.16` are not reproducible pins; environment/model absent | `AUD-001`, word-level alignment | authorize platform/CUDA selection and heavy install | uniform fallback and synthetic worker tests | locked environment installs, probes, unloads, and records exact versions |
@@ -20,3 +19,5 @@ A blocker stops only the dependent sprint. It never stops unrelated work.
 ## Escalation rule
 
 Escalate to Codex/owner when a blocker requires architecture, stored-data migration, public API change, new license obligation, proprietary software, or quality tradeoff. Otherwise record the default and continue the next unblocked card.
+
+Resolved 2026-08-02: `BLK-002`. Owner supplied and approved a Green Lantern script plus edited narration project. The gitignored `ENV-002` manifest records source hashes, integrity checks, the managed WAV, and provenance; sources remained unchanged.

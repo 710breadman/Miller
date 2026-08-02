@@ -1,8 +1,8 @@
 # Miller current-state assessment
 
-Assessment date: **2026-07-26**
+Assessment date: **2026-08-02**
 Repository: `710breadman/Miller`  
-Inspected branch: `codex/env-001` at planning commit `954390b82e077852439636ef7e6aadff03341615`; active control sprint: `ARC-001`
+Inspected branch: `codex/env-001` at pre-`ENV-002` checkpoint `2da8aca`; active control sprint: `ENV-003`
 
 ## Executive assessment
 
@@ -37,6 +37,9 @@ No capability may be called “complete and verified” without naming the highe
 - Revisioned storyboard edits support locks, alternatives, optimistic conflict detection, history, and dependent-stage invalidation.
 - A synthetic no-AI baseline reaches an MP4 when FFmpeg is available.
 - Optional heavy dependencies are kept outside the core import path.
+- `ENV-002` has an owner-approved, gitignored local fixture: 10 real comics plus a 3,524-word Green Lantern script
+  and 28:15.219 edited narration WAV. Source hashes and AU4 SQLite integrity were verified before/after managed
+  conversion on Windows; this is E3 fixture/integrity evidence, not render-quality evidence.
 
 ## What lacks proof
 
@@ -273,12 +276,7 @@ render.
 
 ## Recommended immediate action
 
-Independent Codex review accepted `ARC-001`, `ARC-003`, `SEC-001`, `SEC-002`, and `QAE-001` after bounded security
-and E5-verifier corrections. `AUD-001` remains incomplete/E2 because its dependency ranges are not reproducible
-pins and no real worker environment was installed. Per
-`SPRINT_STATE.json`'s dependency graph, **every remaining `ready`-status sprint now transitively depends on the
-still-missing script/narration half of `ENV-002`** (`ANL-001` gates `ANL-005`/`RET-001`/`RET-004`; `ENV-003` gates
-`ARC-002`, which in turn gates `ARC-004`/`STO-001`/`UX-001`/`VID-003`). The concrete next action is an owner
-decision, not further bounded implementation work: supply/approve a script + edited narration recording for at
-least one of the 10 `ENV-002` comic fixtures, or explicitly authorize installing a real model worker (WhisperX,
-embedding, VLM) to unblock the corresponding sprint.
+`ENV-002` is accepted at E3: the private manifest now covers 10 real comics and the owner-supplied Green Lantern
+script/narration pair, with verified hashes, an integrity-checked AU4 project, and a managed mono PCM WAV. `ENV-003`
+is active: run no-OCR and OCR baseline videos on a managed short excerpt, record technical/manual evidence, and
+recheck source hashes. `ANL-001` is independently ready. `ARC-002` remains blocked until `ENV-003` passes.
