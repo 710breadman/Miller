@@ -235,9 +235,9 @@ new record referencing it (e.g. after a repair pass and re-review).
   the project's managed workspace (e.g. `<workspace>/projects/<project_id>/acceptance/`) — never under Git for
   records that reference private media; a redacted/hash-only copy may be committed for a golden project used as a
   release gate.
-- `content_hash` is the SHA-256 of the record's canonical JSON (sorted keys, compact separators) with the
-  `content_hash` field itself excluded — the same tamper-evidence pattern Miller already uses for artifacts and
-  documents (`artifacts.py`, `db.py`).
+- `content_hash` is the SHA-256 of the record's canonical JSON (sorted keys, compact separators) with the two
+  derived identity fields, `content_hash` and `record_id`, excluded. `record_id` is then `e5_<content_hash>` — the
+  same tamper-evidence pattern Miller already uses for artifacts and documents (`artifacts.py`, `db.py`).
 - A record that supersedes an earlier one sets `supersedes` to the earlier record's ID; the earlier record is never
   mutated in place.
 
