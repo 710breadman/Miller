@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,8 @@ from .video import FFmpegRenderer, ManualVideoSpec
 def _emit(value: Any) -> None:
     if hasattr(value, "model_dump"):
         value = value.model_dump(mode="json")
+    elif is_dataclass(value) and not isinstance(value, type):
+        value = asdict(value)
     print(json.dumps(value, indent=2, sort_keys=True, default=str))
 
 
@@ -232,6 +235,12 @@ def build_parser() -> argparse.ArgumentParser:
     baseline.add_argument("--width", type=int, default=1920)
     baseline.add_argument("--height", type=int, default=1080)
     baseline.add_argument("--fps", type=int, default=30)
+
+    comic_sorter_import = subparsers.add_parser(
+        "import-comic-sorter", help="Validate and import a Comic Sorter narrative bundle"
+    )
+    comic_sorter_import.add_argument("--project-id", required=True)
+    comic_sorter_import.add_argument("--bundle", required=True)
 
     return parser
 
@@ -515,6 +524,11 @@ def main(argv: list[str] | None = None) -> int:
             args.package
         )
         _emit(imported_manifest)
+        return 0
+    if args.command == "import-comic-sorter":
+        from .comic_sorter_import import ComicSorterBundleImporter
+
+        _emit(ComicSorterBundleImporter(database).import_file(args.project_id, args.bundle))
         return 0
     if args.command == "script-run":
         from .script_factory import (

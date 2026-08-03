@@ -32,7 +32,7 @@ from .models import (
 )
 from .transitions import InvalidTransition, validate_transition
 
-_SCHEMA_VERSION = 4
+_SCHEMA_VERSION = 5
 
 
 def _iso(value: datetime) -> str:
@@ -226,6 +226,51 @@ _MIGRATIONS: tuple[_Migration, ...] = (
 
             CREATE INDEX IF NOT EXISTS idx_work_queue_lease_expiry
                 ON work_queue(status, lease_expires_at);
+        """,
+    ),
+    _Migration(
+        version=5,
+        description="Validated Comic Sorter narrative bundle imports.",
+        script="""
+            CREATE TABLE comic_sorter_imports (
+                bundle_id TEXT PRIMARY KEY,
+                schema_version TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                library_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                payload_sha256 TEXT NOT NULL,
+                imported_at TEXT NOT NULL
+            );
+
+            CREATE TABLE comic_sorter_candidates (
+                bundle_id TEXT NOT NULL
+                    REFERENCES comic_sorter_imports(bundle_id) ON DELETE CASCADE,
+                candidate_id TEXT NOT NULL,
+                document_id TEXT NOT NULL,
+                issue_id TEXT NOT NULL,
+                story_id TEXT NOT NULL,
+                page_id TEXT NOT NULL,
+                panel_id TEXT,
+                rank INTEGER NOT NULL CHECK(rank >= 1),
+                narrative_score REAL NOT NULL CHECK(narrative_score BETWEEN 0 AND 1),
+                confidence REAL NOT NULL CHECK(confidence BETWEEN 0 AND 1),
+                summary TEXT NOT NULL,
+                moment_type TEXT NOT NULL,
+                entity_ids_json TEXT NOT NULL,
+                event_ids_json TEXT NOT NULL,
+                theme_ids_json TEXT NOT NULL,
+                arc_ids_json TEXT NOT NULL,
+                evidence_ids_json TEXT NOT NULL,
+                technical_hints_json TEXT NOT NULL,
+                PRIMARY KEY(bundle_id, candidate_id)
+            );
+
+            CREATE INDEX idx_comic_sorter_import_project
+                ON comic_sorter_imports(project_id, imported_at);
+            CREATE INDEX idx_comic_sorter_candidate_page
+                ON comic_sorter_candidates(page_id, panel_id);
+            CREATE INDEX idx_comic_sorter_candidate_score
+                ON comic_sorter_candidates(bundle_id, narrative_score DESC, rank);
         """,
     ),
 )
