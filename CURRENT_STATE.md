@@ -2,15 +2,15 @@
 
 Assessment date: **2026-08-02**
 Repository: `710breadman/Miller`  
-Inspected branch: `codex/env-001` at pre-`ENV-002` checkpoint `2da8aca`; active control sprint: `ENV-003`
+Inspected branch: `codex/env-001` at pre-`ENV-003` checkpoint `0cfc280`; active control sprint: `ARC-002`
 
 ## Executive assessment
 
 Miller is **not a blank project**. It has a coherent Python foundation, strong ownership boundaries, typed contracts, SQLite state, safe CBZ handling, a deterministic stage runner, optional worker boundaries, lexical retrieval, storyboard contracts, revisioned editing, FFmpeg rendering, packaging scripts, and a useful synthetic test suite.
 
-It is also **not yet a proven comic-understanding or production-quality video system**. The current end-to-end baseline uses filename/OCR text, simple white-gutter panel heuristics, uniform audio timing, greedy lexical scene selection, and synthetic media tests. Most model-backed integrations are contracts without a shipped worker environment or real-corpus evidence. The local web interface is a minimal inline prototype.
+It is also **not yet a proven comic-understanding or production-quality video system**. The current end-to-end baseline uses filename/OCR text, simple white-gutter panel heuristics, uniform audio timing, and greedy lexical scene selection. It now has one real 70-second E3 run, but that run exposed page-level crops, visible lettering, an ad/tag selection, reuse, and no clear OCR relevance gain. Most model-backed integrations remain contracts without a shipped worker environment or quantitative real-corpus evidence. The local web interface is a minimal inline prototype.
 
-The correct next move is to preserve the foundation, reconcile control-document claims, make the baseline use the durable DAG, then benchmark comic analysis and retrieval on owner-approved labels. ENV-001 local synthetic acceptance reached E3; real-corpus and human gates remain open.
+The correct next move is to make the proven baseline use the durable DAG, then benchmark comic analysis and retrieval on owner-approved labels. ENV-001 synthetic and ENV-003 real baseline acceptance reached E3; quantitative real-corpus and human gates remain open.
 
 ## Evidence levels
 
@@ -42,6 +42,9 @@ No capability may be called “complete and verified” without naming the highe
 - `ENV-002` has an owner-approved, gitignored local fixture: 10 real comics plus a 3,524-word Green Lantern script
   and 28:15.219 edited narration WAV. Source hashes and AU4 SQLite integrity were verified before/after managed
   conversion on Windows; this is E3 fixture/integrity evidence, not render-quality evidence.
+- `ENV-003` produced real no-OCR and OCR H.264/AAC baselines from a 70-second managed excerpt. Both fully decoded,
+  had no detected black segment over 0.5 seconds, preserved source hashes, and stored complete project documents in
+  an integrity-checked SQLite database. Visual quality needs repair; this remains E3, not E4/E5.
 
 ## What lacks proof
 
@@ -278,7 +281,6 @@ render.
 
 ## Recommended immediate action
 
-`ENV-002` is accepted at E3: the private manifest now covers 10 real comics and the owner-supplied Green Lantern
-script/narration pair, with verified hashes, an integrity-checked AU4 project, and a managed mono PCM WAV. `ENV-003`
-is active: run no-OCR and OCR baseline videos on a managed short excerpt, record technical/manual evidence, and
-recheck source hashes. `ANL-001` is independently ready. `ARC-002` remains blocked until `ENV-003` passes.
+`ENV-003` is accepted at E3 technical evidence, with explicit quality failures and no E4/E5 claim. `ARC-002` is now
+active: route the existing baseline through `PipelineRunner` and prove restart behavior without changing analysis,
+retrieval, storyboard, or render semantics. `ANL-001`, `ENV-004`, and `QAE-002` are ready alternatives.

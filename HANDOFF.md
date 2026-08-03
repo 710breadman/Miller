@@ -1,8 +1,8 @@
 # Miller handoff
 
-Status: **`ENV-002` accepted at E3; `ENV-003` active; `ANL-001` ready; `AUD-001` remains incomplete/E2**
+Status: **`ENV-003` accepted at E3 technical evidence; `ARC-002` active; visual quality needs repair; `AUD-001` remains incomplete/E2**
 Planning revision: `2026-07-21-definitive`  
-Active sprint: **`ENV-003` — Real no-AI baseline acceptance**
+Active sprint: **`ARC-002` — Durable baseline DAG integration**
 
 ## What was completed
 
@@ -15,6 +15,11 @@ Active sprint: **`ENV-003` — Real no-AI baseline acceptance**
   script, the edited AU4 narration project, and a managed 28:15.219 mono 44.1 kHz PCM WAV. Source hashes were
   rechecked unchanged, AU4 SQLite integrity passed, and conversion provenance is recorded. No private media was
   committed. Several library `.cbz` files are actually mislabeled 7-Zip/RAR archives;
+- `ENV-003`: real no-OCR and OCR 70-second H.264/AAC videos from a managed excerpt of the approved Green Lantern
+  fixture. Both fully decode, have no detected black segment over 0.5 seconds, preserve all source hashes, and store
+  complete documents in an integrity-checked SQLite database. No-OCR took 114.324 seconds; OCR took about 140.9
+  seconds and produced 1,199 regions. Manual review found page-level crops, visible lettering, an OCR-selected
+  ad/tag page, reuse, and no clear relevance improvement, so quality is `needs_repair` and E4/E5 remain open;
 - `ARC-003` versioned worker protocol, lease/heartbeat, a stale-result guard, cooperative cancellation, timeout
   detection, typed error classes, and single-GPU admission in `src/miller/{db,models,workers}.py`;
 - `AUD-001` produced a standalone alignment worker contract, probe/unload operations, and CPU-fallback auto-device
@@ -58,6 +63,12 @@ Later on 2026-08-02, the owner supplied the missing `ENV-002` script and edited 
 private manifest and source files, exported narration only from a byte-identical managed AU4 copy, verified the WAV
 probe/hash/levels, and rechecked source hashes unchanged. This closes `BLK-002` and advances `ENV-002` to E3.
 
+`ENV-003` then passed its bounded E3 technical objective. The report and contact sheet are under
+`.miller/acceptance/`. A Head Chef vision worker's false PASS was rejected after coordinator inspection found the
+visible ad and repeated art. A separate dedicated RTX 3070 text/evidence review accepted only the E3 technical
+claim and explicitly kept E4/E5 unproven. Final gate passed: frozen sync, Ruff, strict Mypy, 133 passed/1 Windows
+symlink skip, sdist/wheel build, planning validator (55 cards; active `ARC-002`), and `git diff --check`.
+
 ## What was not done
 
 - no crash-mid-operation interruption drill for `ARC-001`, `ARC-003`, or `AUD-001` — deferred to `ENV-004`;
@@ -65,18 +76,18 @@ probe/hash/levels, and rechecked source hashes unchanged. This closes `BLK-002` 
 - `AUD-001` did not produce a fully pinned environment or install/run real WhisperX/stable-ts/torch — no model
   weights were downloaded;
 - `SEC-002` did not resolve Miller's own software license (`OD-001`) or model/data terms;
-- `QAE-001`'s rubric has not been exercised against any real rendered project — no real render exists yet;
+- `QAE-001`'s full E5 rubric has not been exercised against a real rendered project; the ENV-003 contact-sheet
+  inspection is technical evidence plus quality findings, not owner acceptance;
 - no Windows long-path, antivirus, or RTX 3070 hardware-stress tests were run in this environment;
-- no real baseline video, model worker, or subjective video gate has been tested yet;
+- no pinned production model worker or subjective E5 video gate has passed;
 - owner acceptance now exists for the private `ENV-002` fixture, but not for model installation, software license,
   or real-video quality;
 
 ## Exact next action
 
-Run `ENV-003` using a managed 30–90 second excerpt of the approved Green Lantern script/WAV and one recorded Green
-Lantern comic fixture. Produce separate no-OCR and OCR MP4s, preserve commands/timing/hashes/ffprobe/warnings,
-manually inspect both, and recheck every source hash. Do not alter production code if the acceptance run finds a
-defect; record it and open the appropriate bounded card.
+Execute `ARC-002`: route ingest, analysis, uniform alignment, retrieval, storyboard, derived assets, and render
+through `PipelineRunner`; preserve the current CLI and ENV-003 fallback behavior; add restart/cache/invalidation
+proof; then run the focused and full gates. Do not change analysis/retrieval/storyboard/video semantics on this card.
 
 ## Do not redo
 
@@ -88,10 +99,10 @@ call its environment pinned or complete until exact locks install and probe succ
 
 ## Safe fallback cards
 
-`ANL-001` is ready if `ENV-003` blocks. `AUD-001` still needs explicit authorization for a fully pinned heavy model
-environment; `OD-001` remains owner-only.
+`ANL-001`, `ENV-004`, and `QAE-002` are ready. `AUD-001` still needs explicit authorization for a fully pinned
+heavy model environment; `OD-001` remains owner-only.
 
 ## Context startup
 
-Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ENV-003` card, this
+Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ARC-002` card, this
 handoff, and Git status. Do not load all sprint cards into Gemma context.
