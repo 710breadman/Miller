@@ -47,6 +47,7 @@ class SceneScore(StoryboardModel):
     theme: float = Field(ge=0.0, le=1.0)
     continuity: float = Field(ge=0.0, le=1.0)
     quality: float = Field(ge=0.0, le=1.0)
+    narrative: float = Field(default=0.0, ge=0.0, le=1.0)
     reuse_penalty: float = Field(ge=0.0, le=1.0)
     total: float = Field(ge=0.0, le=1.0)
 

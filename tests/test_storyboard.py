@@ -9,7 +9,7 @@ from miller.analysis import (
     TechnicalQuality,
 )
 from miller.audio import BeatPlan, NarrationBeat
-from miller.storyboard import StoryboardBuilder, propose_search_scope
+from miller.storyboard import SearchScope, StoryboardBuilder, propose_search_scope
 
 
 def page(
@@ -133,3 +133,31 @@ def test_scope_and_storyboard_are_complete_traceable_and_respect_locks() -> None
         candidate.asset_id for scene in plan.scenes for candidate in scene.candidates
     }
     assert plan.scenes[0].candidates[0].reasons
+
+
+def test_imported_narrative_rank_combines_without_replacing_miller_quality() -> None:
+    first = page("a", "A quiet room", "wait", "Peter", "calm", 0.9)
+    second = page("b", "A quiet room", "wait", "Peter", "calm", 0.4)
+    beats = BeatPlan(
+        audio_duration_seconds=2.0,
+        beats=(
+            NarrationBeat(
+                id="beat_0001",
+                section_index=0,
+                start=0,
+                end=2,
+                text="A quiet room",
+                first_word_index=0,
+                last_word_index=2,
+            ),
+        ),
+    )
+    plan = StoryboardBuilder((first, second), narrative_scores={second.page_id: 1.0}).build(
+        beats, SearchScope(characters=("Peter",))
+    )
+    imported = next(
+        candidate for candidate in plan.scenes[0].candidates if candidate.asset_id == second.page_id
+    )
+    assert imported.score.narrative == 1.0
+    assert imported.score.quality == 0.4
+    assert "comic-sorter-narrative=1.000" in imported.reasons

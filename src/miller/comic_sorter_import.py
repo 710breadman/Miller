@@ -176,6 +176,33 @@ class ComicSorterBundleImporter:
                         _json(candidate.get("technical_hints", {})),
                     ),
                 )
+            document_kind = f"comic_sorter.bundle.{bundle_id}"
+            provenance = _json(
+                {
+                    "bundle_id": bundle_id,
+                    "schema_version": bundle["schema_version"],
+                    "library_id": bundle["library_id"],
+                    "payload_sha256": checksum,
+                    "candidate_ids": [item["candidate_id"] for item in candidates],
+                    "source": "comic-sorter",
+                }
+            )
+            connection.execute(
+                """
+                INSERT INTO project_documents(
+                    project_id,kind,revision,document_json,created_at,updated_at
+                ) VALUES (?,?,1,?,?,?)
+                """,
+                (project_id, document_kind, provenance, imported_at, imported_at),
+            )
+            connection.execute(
+                """
+                INSERT INTO project_document_history(
+                    project_id,kind,revision,document_json,created_at
+                ) VALUES (?,?,1,?,?)
+                """,
+                (project_id, document_kind, provenance, imported_at),
+            )
             connection.execute(
                 "INSERT INTO events(id,project_id,kind,payload_json,created_at) VALUES (?,?,?,?,?)",
                 (
@@ -206,6 +233,13 @@ class ComicSorterBundleImporter:
                 (project_id,),
             ).fetchall()
         return [_candidate(dict(row)) for row in rows]
+
+    def narrative_scores(self, project_id: str) -> dict[str, float]:
+        scores: dict[str, float] = {}
+        for candidate in self.list_candidates(project_id):
+            page_id = str(candidate["page_id"])
+            scores[page_id] = max(scores.get(page_id, 0.0), float(candidate["narrative_score"]))
+        return scores
 
 
 def _json(value: Any) -> str:

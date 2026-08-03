@@ -12,6 +12,7 @@ from miller.comic_sorter_import import (
     load_comic_sorter_schema,
 )
 from miller.db import Database
+from miller.portable import PortableProjectExporter
 
 FIXTURE = (
     Path(__file__).resolve().parents[2]
@@ -58,6 +59,18 @@ def test_import_is_transactional_idempotent_and_retains_provenance(tmp_path: Pat
     assert candidates[0]["page_id"] == "page_fixture_001"
     assert candidates[0]["evidence_ids"] == ["evidence_fixture_001"]
     assert candidates[0]["narrative_score"] == 0.9
+    document = database.get_document("project_fixture", "comic_sorter.bundle.bundle_fixture_001")
+    assert document.document["candidate_ids"] == ["candidate_fixture_001"]
+    assert importer.narrative_scores("project_fixture") == {"page_fixture_001": 0.9}
+    manifest = PortableProjectExporter(database, tmp_path / "workspace").export(
+        "project_fixture", tmp_path / "portable.miller.zip"
+    )
+    exported = next(
+        item
+        for item in manifest.documents
+        if item.kind == "comic_sorter.bundle.bundle_fixture_001"
+    )
+    assert exported.document["payload_sha256"] == first.payload_sha256
 
 
 def test_validation_happens_before_mutation(tmp_path: Path) -> None:
