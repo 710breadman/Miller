@@ -60,9 +60,8 @@ class ExternalEmbeddingWorker:
             timeout=self.timeout_seconds,
         )
         if result.returncode != 0:
-            raise RuntimeError(
-                f"embedding worker failed with exit {result.returncode}: {result.stderr[-2000:]}"
-            )
+            detail = self._extract_error_message(result.stdout) or result.stderr[-2000:]
+            raise RuntimeError(f"embedding worker failed with exit {result.returncode}: {detail}")
         try:
             payload = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
@@ -70,3 +69,17 @@ class ExternalEmbeddingWorker:
         if not isinstance(payload, dict):
             raise RuntimeError("embedding worker response must be an object")
         return payload
+
+    @staticmethod
+    def _extract_error_message(stdout: str) -> str | None:
+        """Prefer the worker's structured ``{"error": ...}`` body, if present."""
+
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(payload, dict):
+            error = payload.get("error")
+            if isinstance(error, str):
+                return error
+        return None

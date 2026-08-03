@@ -1,6 +1,6 @@
 # Local Windows setup
 
-Target: `D:\_Codex\Miller`
+Target: detected owner checkout/workspace; current owner-reported repo path: `V:\AI\Miller`
 
 ## Automatic installation
 
@@ -12,7 +12,7 @@ powershell -ExecutionPolicy Bypass -File .\APPLY_TO_D_CODEX_MILLER.ps1
 
 The script:
 
-1. Creates `D:\_Codex\Miller` when absent.
+1. Creates managed workspace only when absent; never assumes a fixed repository path.
 2. Backs up existing non-generated files.
 3. Saves dirty Git status/diffs and stashes changes when applicable.
 4. Creates a timestamped implementation branch.
@@ -24,7 +24,7 @@ The script:
 ## Manual verification
 
 ```powershell
-cd D:\_Codex\Miller
+cd V:\AI\Miller
 .\VERIFY_MILLER.ps1
 uv run miller capabilities
 uv run miller --help

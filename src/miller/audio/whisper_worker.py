@@ -1,4 +1,10 @@
-"""Process-isolated WhisperX-compatible worker contract."""
+"""Process-isolated WhisperX-compatible worker contract.
+
+See ``worker/align_worker.py`` for the standalone, isolated-environment
+process this class is meant to launch, and ``worker/requirements.txt`` for
+its pinned, reproducible dependency set (kept separate from Miller's core
+environment; D-005 in DECISIONS.md).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +14,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from .models import AlignmentResult
+
+_CPU_FALLBACK_COMPUTE_TYPE = "int8"
 
 
 class ExternalAlignmentWorker:
@@ -27,11 +35,29 @@ class ExternalAlignmentWorker:
         script: str | None = None,
         language: str | None = None,
         model: str = "small",
-        device: str = "cuda",
-        compute_type: str = "float16",
+        engine: str = "whisperx",
+        device: str = "auto",
+        compute_type: str = "auto",
     ) -> AlignmentResult:
+        """Align ``audio_path``.
+
+        ``device="auto"`` (the default) probes the worker environment first
+        and falls back to CPU when CUDA is unavailable, rather than failing
+        on a machine without a usable GPU; pass an explicit ``"cuda"`` or
+        ``"cpu"`` to skip that probe call.
+        """
+
+        if device == "auto" or compute_type == "auto":
+            probe = self.probe()
+            if device == "auto":
+                device = str(probe.get("recommended_device", "cpu"))
+            if compute_type == "auto":
+                compute_type = str(
+                    probe.get("recommended_compute_type", _CPU_FALLBACK_COMPUTE_TYPE)
+                )
         request: dict[str, object] = {
             "operation": "align",
+            "engine": engine,
             "audio_path": str(Path(audio_path).expanduser().resolve()),
             "model": model,
             "device": device,
@@ -57,7 +83,7 @@ class ExternalAlignmentWorker:
             timeout=self.timeout_seconds,
         )
         if result.returncode != 0:
-            detail = result.stderr[-2000:]
+            detail = self._extract_error_message(result.stdout) or result.stderr[-2000:]
             raise RuntimeError(f"alignment worker failed with exit {result.returncode}: {detail}")
         try:
             payload = json.loads(result.stdout)
@@ -66,3 +92,17 @@ class ExternalAlignmentWorker:
         if not isinstance(payload, dict):
             raise RuntimeError("alignment worker response must be an object")
         return payload
+
+    @staticmethod
+    def _extract_error_message(stdout: str) -> str | None:
+        """Prefer the worker's structured ``{"error": ...}`` body, if present."""
+
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(payload, dict):
+            error = payload.get("error")
+            if isinstance(error, str):
+                return error
+        return None

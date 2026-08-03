@@ -19,3 +19,8 @@ renders/
 *.log
 
 .miller-backups/
+
+# Local-model orchestration runtime state (machine-specific, never authoritative)
+.gemma/
+.head-chef/
+_quarantine/

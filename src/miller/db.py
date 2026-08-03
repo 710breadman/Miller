@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 from uuid import uuid4
@@ -25,11 +27,12 @@ from .models import (
     StageDefinition,
     StageRun,
     StageStatus,
+    WorkerErrorClass,
     utc_now,
 )
 from .transitions import InvalidTransition, validate_transition
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 5
 
 
 def _iso(value: datetime) -> str:
@@ -42,6 +45,239 @@ def _new_id(prefix: str) -> str:
 
 class DocumentConflict(RuntimeError):
     """Raised when optimistic document revision checking fails."""
+
+
+class DatabaseIntegrityError(RuntimeError):
+    """Raised when a database file fails a SQLite integrity check."""
+
+
+class MigrationError(RuntimeError):
+    """Raised when ordered schema migration cannot proceed safely."""
+
+
+@dataclass(frozen=True)
+class _Migration:
+    """One ordered, idempotent schema migration step."""
+
+    version: int
+    description: str
+    script: str
+
+
+# Each migration's DDL is grouped by the feature that introduced it. The
+# repository history does not preserve the original per-version diffs (the
+# schema was published in one commit), so these boundaries are a faithful
+# reconstruction by feature area rather than a literal replay of past
+# upgrades: 1) core stage/attempt/artifact/event tables, 2) revisioned
+# project documents, 3) the persistent work queue. See DECISIONS.md D-004.
+_MIGRATIONS: tuple[_Migration, ...] = (
+    _Migration(
+        version=1,
+        description="Core project, stage, attempt, artifact, and event tables.",
+        script="""
+            CREATE TABLE IF NOT EXISTS schema_meta (
+                version INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                workspace TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_definitions (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_dependencies (
+                stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE CASCADE,
+                dependency_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
+                PRIMARY KEY (stage_id, dependency_id),
+                CHECK (stage_id <> dependency_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_runs (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
+                status TEXT NOT NULL,
+                input_fingerprint TEXT,
+                output_artifact_id TEXT,
+                active_attempt_id TEXT,
+                cancel_requested INTEGER NOT NULL DEFAULT 0,
+                error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(project_id, stage_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS stage_attempts (
+                id TEXT PRIMARY KEY,
+                stage_run_id TEXT NOT NULL REFERENCES stage_runs(id) ON DELETE CASCADE,
+                number INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                attempt_guard TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                error TEXT,
+                UNIQUE(stage_run_id, number)
+            );
+
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id TEXT PRIMARY KEY,
+                content_id TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE SET NULL,
+                relative_path TEXT NOT NULL,
+                sha256 TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                media_type TEXT NOT NULL,
+                metadata_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(project_id, relative_path)
+            );
+
+            CREATE TABLE IF NOT EXISTS events (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE CASCADE,
+                attempt_id TEXT REFERENCES stage_attempts(id) ON DELETE CASCADE,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_stage_runs_project
+                ON stage_runs(project_id, stage_id);
+            CREATE INDEX IF NOT EXISTS idx_attempts_run
+                ON stage_attempts(stage_run_id, number);
+            CREATE INDEX IF NOT EXISTS idx_events_project
+                ON events(project_id, created_at);
+        """,
+    ),
+    _Migration(
+        version=2,
+        description="Revisioned project documents and their history.",
+        script="""
+            CREATE TABLE IF NOT EXISTS project_documents (
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                document_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY(project_id, kind)
+            );
+
+            CREATE TABLE IF NOT EXISTS project_document_history (
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                revision INTEGER NOT NULL,
+                document_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY(project_id, kind, revision)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_project_document_history
+                ON project_document_history(project_id, kind, revision);
+        """,
+    ),
+    _Migration(
+        version=3,
+        description="Persistent bounded work queue.",
+        script="""
+            CREATE TABLE IF NOT EXISTS work_queue (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                kind TEXT NOT NULL,
+                status TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                started_at TEXT,
+                completed_at TEXT,
+                error TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_work_queue_claim
+                ON work_queue(kind, status, priority, created_at);
+        """,
+    ),
+    _Migration(
+        version=4,
+        description=(
+            "Worker protocol versioning, lease/heartbeat, cancellation, and "
+            "GPU admission for the work queue (ARC-003)."
+        ),
+        script="""
+            ALTER TABLE work_queue ADD COLUMN requires_gpu INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE work_queue ADD COLUMN protocol_version TEXT NOT NULL DEFAULT '1';
+            ALTER TABLE work_queue ADD COLUMN claimed_by TEXT;
+            ALTER TABLE work_queue ADD COLUMN lease_token TEXT;
+            ALTER TABLE work_queue ADD COLUMN lease_expires_at TEXT;
+            ALTER TABLE work_queue ADD COLUMN heartbeat_at TEXT;
+            ALTER TABLE work_queue ADD COLUMN cancel_requested INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE work_queue ADD COLUMN error_class TEXT;
+
+            CREATE INDEX IF NOT EXISTS idx_work_queue_lease_expiry
+                ON work_queue(status, lease_expires_at);
+        """,
+    ),
+    _Migration(
+        version=5,
+        description="Validated Comic Sorter narrative bundle imports.",
+        script="""
+            CREATE TABLE comic_sorter_imports (
+                bundle_id TEXT PRIMARY KEY,
+                schema_version TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                library_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                payload_sha256 TEXT NOT NULL,
+                imported_at TEXT NOT NULL
+            );
+
+            CREATE TABLE comic_sorter_candidates (
+                bundle_id TEXT NOT NULL
+                    REFERENCES comic_sorter_imports(bundle_id) ON DELETE CASCADE,
+                candidate_id TEXT NOT NULL,
+                document_id TEXT NOT NULL,
+                issue_id TEXT NOT NULL,
+                story_id TEXT NOT NULL,
+                page_id TEXT NOT NULL,
+                panel_id TEXT,
+                rank INTEGER NOT NULL CHECK(rank >= 1),
+                narrative_score REAL NOT NULL CHECK(narrative_score BETWEEN 0 AND 1),
+                confidence REAL NOT NULL CHECK(confidence BETWEEN 0 AND 1),
+                summary TEXT NOT NULL,
+                moment_type TEXT NOT NULL,
+                entity_ids_json TEXT NOT NULL,
+                event_ids_json TEXT NOT NULL,
+                theme_ids_json TEXT NOT NULL,
+                arc_ids_json TEXT NOT NULL,
+                evidence_ids_json TEXT NOT NULL,
+                technical_hints_json TEXT NOT NULL,
+                PRIMARY KEY(bundle_id, candidate_id)
+            );
+
+            CREATE INDEX idx_comic_sorter_import_project
+                ON comic_sorter_imports(project_id, imported_at);
+            CREATE INDEX idx_comic_sorter_candidate_page
+                ON comic_sorter_candidates(page_id, panel_id);
+            CREATE INDEX idx_comic_sorter_candidate_score
+                ON comic_sorter_candidates(bundle_id, narrative_score DESC, rank);
+        """,
+    ),
+)
+
+assert [migration.version for migration in _MIGRATIONS] == list(
+    range(1, _SCHEMA_VERSION + 1)
+), "migrations must be dense and ordered from 1 to _SCHEMA_VERSION"
 
 
 class Database:
@@ -72,147 +308,146 @@ class Database:
             connection.close()
 
     def initialize(self) -> None:
-        with self.transaction() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS schema_meta (
-                    version INTEGER NOT NULL
-                );
+        """Bring the database file up to ``_SCHEMA_VERSION`` via ordered migrations.
 
-                CREATE TABLE IF NOT EXISTS projects (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    workspace TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL
-                );
+        A database file that already exists is integrity-checked before anything
+        else runs. If pending migrations exist, a verified preflight backup is
+        taken first so :meth:`restore_from_backup` can recover the prior state.
+        A brand-new (missing or empty) database file is created directly at the
+        latest schema with no backup, since there is no prior state to lose.
+        """
 
-                CREATE TABLE IF NOT EXISTS stage_definitions (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    version TEXT NOT NULL
-                );
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        pre_existing = self.path.exists() and self.path.stat().st_size > 0
+        if pre_existing:
+            self._check_integrity(context=f"preflight check of {self.path}")
 
-                CREATE TABLE IF NOT EXISTS stage_dependencies (
-                    stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE CASCADE,
-                    dependency_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
-                    PRIMARY KEY (stage_id, dependency_id),
-                    CHECK (stage_id <> dependency_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS stage_runs (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    stage_id TEXT NOT NULL REFERENCES stage_definitions(id) ON DELETE RESTRICT,
-                    status TEXT NOT NULL,
-                    input_fingerprint TEXT,
-                    output_artifact_id TEXT,
-                    active_attempt_id TEXT,
-                    cancel_requested INTEGER NOT NULL DEFAULT 0,
-                    error TEXT,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    UNIQUE(project_id, stage_id)
-                );
-
-                CREATE TABLE IF NOT EXISTS stage_attempts (
-                    id TEXT PRIMARY KEY,
-                    stage_run_id TEXT NOT NULL REFERENCES stage_runs(id) ON DELETE CASCADE,
-                    number INTEGER NOT NULL,
-                    status TEXT NOT NULL,
-                    attempt_guard TEXT NOT NULL,
-                    started_at TEXT NOT NULL,
-                    completed_at TEXT,
-                    error TEXT,
-                    UNIQUE(stage_run_id, number)
-                );
-
-                CREATE TABLE IF NOT EXISTS artifacts (
-                    id TEXT PRIMARY KEY,
-                    content_id TEXT NOT NULL,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE SET NULL,
-                    relative_path TEXT NOT NULL,
-                    sha256 TEXT NOT NULL,
-                    size_bytes INTEGER NOT NULL,
-                    media_type TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    UNIQUE(project_id, relative_path)
-                );
-
-                CREATE TABLE IF NOT EXISTS events (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    stage_run_id TEXT REFERENCES stage_runs(id) ON DELETE CASCADE,
-                    attempt_id TEXT REFERENCES stage_attempts(id) ON DELETE CASCADE,
-                    payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_stage_runs_project
-                    ON stage_runs(project_id, stage_id);
-                CREATE INDEX IF NOT EXISTS idx_attempts_run
-                    ON stage_attempts(stage_run_id, number);
-                CREATE INDEX IF NOT EXISTS idx_events_project
-                    ON events(project_id, created_at);
-
-                CREATE TABLE IF NOT EXISTS project_documents (
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    revision INTEGER NOT NULL,
-                    document_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    PRIMARY KEY(project_id, kind)
-                );
-
-                CREATE TABLE IF NOT EXISTS project_document_history (
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    revision INTEGER NOT NULL,
-                    document_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    PRIMARY KEY(project_id, kind, revision)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_project_document_history
-                    ON project_document_history(project_id, kind, revision);
-
-                CREATE TABLE IF NOT EXISTS work_queue (
-                    id TEXT PRIMARY KEY,
-                    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                    kind TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    priority INTEGER NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    started_at TEXT,
-                    completed_at TEXT,
-                    error TEXT
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_work_queue_claim
-                    ON work_queue(kind, status, priority, created_at);
-                """
+        current_version = self._read_schema_version() if pre_existing else 0
+        if current_version > _SCHEMA_VERSION:
+            raise MigrationError(
+                f"database schema {current_version} is newer than supported "
+                f"{_SCHEMA_VERSION}; refusing to downgrade {self.path}"
             )
-            row = connection.execute("SELECT version FROM schema_meta").fetchone()
-            if row is None:
-                connection.execute(
-                    "INSERT INTO schema_meta(version) VALUES (?)", (_SCHEMA_VERSION,)
-                )
-            else:
-                version = int(row["version"])
-                if version in {1, 2}:
+
+        pending = tuple(m for m in _MIGRATIONS if m.version > current_version)
+        if not pending:
+            return
+
+        backup_path: Path | None = None
+        if pre_existing:
+            backup_path = self.create_backup(
+                reason=f"pre-migration-v{current_version}-to-v{_SCHEMA_VERSION}"
+            )
+
+        try:
+            for migration in pending:
+                with self.transaction() as connection:
+                    connection.executescript(migration.script)
+                    connection.execute("DELETE FROM schema_meta")
                     connection.execute(
-                        "UPDATE schema_meta SET version=?", (_SCHEMA_VERSION,)
+                        "INSERT INTO schema_meta(version) VALUES (?)", (migration.version,)
                     )
-                elif version != _SCHEMA_VERSION:
-                    raise RuntimeError(
-                        f"unsupported database schema {version}; expected {_SCHEMA_VERSION}"
-                    )
+            self._check_integrity(context=f"post-migration check of {self.path}")
+        except Exception as exc:
+            hint = (
+                f" A verified preflight backup is available at {backup_path}."
+                if backup_path is not None
+                else ""
+            )
+            raise MigrationError(
+                f"migration to schema {_SCHEMA_VERSION} failed for {self.path}: {exc}.{hint}"
+            ) from exc
+
+    def verify_integrity(self) -> None:
+        """Raise :class:`DatabaseIntegrityError` if the database file is corrupt."""
+
+        self._check_integrity(context=f"explicit verification of {self.path}")
+
+    def create_backup(self, *, reason: str | None = None, destination: Path | None = None) -> Path:
+        """Copy this database to a verified backup file using SQLite's backup API.
+
+        The backup is read back and integrity-checked before this method returns,
+        so callers can trust that a returned path is restorable.
+        """
+
+        if not self.path.exists():
+            raise FileNotFoundError(f"cannot back up missing database: {self.path}")
+        if destination is None:
+            backup_dir = self.path.parent / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = utc_now().strftime("%Y%m%dT%H%M%SZ")
+            suffix = f"-{reason}" if reason else ""
+            destination = backup_dir / f"{self.path.stem}.{timestamp}{suffix}.sqlite3"
+        else:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+
+        source_connection = sqlite3.connect(self.path)
+        destination_connection = sqlite3.connect(destination)
+        try:
+            source_connection.backup(destination_connection)
+        finally:
+            destination_connection.close()
+            source_connection.close()
+
+        Database(destination)._check_integrity(context=f"backup verification of {destination}")
+        return destination
+
+    def restore_from_backup(self, backup_path: Path | str) -> None:
+        """Atomically replace this database's live file with a verified backup.
+
+        The backup is integrity-checked before touching the live file. The
+        restored content is staged next to the live path and integrity-checked
+        again before the atomic replace, so a failure never leaves the live
+        file partially overwritten.
+        """
+
+        backup_path = Path(backup_path)
+        if not backup_path.exists():
+            raise FileNotFoundError(f"backup not found: {backup_path}")
+        Database(backup_path)._check_integrity(context=f"restore source {backup_path}")
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        staging_path = self.path.with_name(f"{self.path.name}.restore-{secrets.token_hex(8)}.tmp")
+        source_connection = sqlite3.connect(backup_path)
+        staging_connection = sqlite3.connect(staging_path)
+        try:
+            source_connection.backup(staging_connection)
+        finally:
+            staging_connection.close()
+            source_connection.close()
+
+        try:
+            Database(staging_path)._check_integrity(context=f"restore staging {staging_path}")
+            os.replace(staging_path, self.path)
+        finally:
+            if staging_path.exists():
+                staging_path.unlink()
+
+    def _check_integrity(self, *, context: str) -> None:
+        try:
+            connection = sqlite3.connect(self.path, timeout=30)
+            try:
+                result = connection.execute("PRAGMA integrity_check").fetchone()
+            finally:
+                connection.close()
+        except sqlite3.DatabaseError as exc:
+            raise DatabaseIntegrityError(f"integrity check failed during {context}: {exc}") from exc
+        outcome = str(result[0]) if result is not None else "unknown"
+        if outcome != "ok":
+            raise DatabaseIntegrityError(f"integrity check failed during {context}: {outcome}")
+
+    def _read_schema_version(self) -> int:
+        connection = sqlite3.connect(self.path, timeout=30)
+        try:
+            table = connection.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='schema_meta'"
+            ).fetchone()
+            if table is None:
+                return 0
+            row = connection.execute("SELECT version FROM schema_meta").fetchone()
+            return int(row[0]) if row is not None else 0
+        finally:
+            connection.close()
 
     def create_project(
         self, name: str, workspace: Path | str, project_id: str | None = None
@@ -516,14 +751,17 @@ class Database:
             row = self._require_stage_run(connection, stage_run_id)
         return bool(row["cancel_requested"])
 
-    def recover_abandoned(self) -> int:
+    def recover_abandoned(self, project_id: str | None = None) -> int:
         """Mark in-progress attempts abandoned after an unclean process exit."""
 
         recovered = 0
         with self.transaction() as connection:
-            rows = connection.execute(
-                "SELECT * FROM stage_runs WHERE status=?", (StageStatus.RUNNING.value,)
-            ).fetchall()
+            query = "SELECT * FROM stage_runs WHERE status=?"
+            parameters: tuple[str, ...] = (StageStatus.RUNNING.value,)
+            if project_id is not None:
+                query += " AND project_id=?"
+                parameters += (project_id,)
+            rows = connection.execute(query, parameters).fetchall()
             for row in rows:
                 attempt_id = row["active_attempt_id"]
                 now = utc_now()
@@ -841,6 +1079,8 @@ class Database:
         payload: dict[str, Any] | None = None,
         *,
         priority: int = 100,
+        requires_gpu: bool = False,
+        protocol_version: str = "1",
     ) -> QueueItem:
         now = utc_now()
         item = QueueItem(
@@ -849,6 +1089,8 @@ class Database:
             kind=kind,
             priority=priority,
             payload=payload or {},
+            requires_gpu=requires_gpu,
+            protocol_version=protocol_version,
             created_at=now,
             updated_at=now,
         )
@@ -862,8 +1104,8 @@ class Database:
                 """
                 INSERT INTO work_queue(
                     id, project_id, kind, status, priority, payload_json,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    requires_gpu, protocol_version, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.id,
@@ -872,6 +1114,8 @@ class Database:
                     item.status.value,
                     item.priority,
                     json.dumps(item.payload, sort_keys=True, separators=(",", ":")),
+                    int(item.requires_gpu),
+                    item.protocol_version,
                     _iso(item.created_at),
                     _iso(item.updated_at),
                 ),
@@ -880,11 +1124,35 @@ class Database:
                 connection,
                 project_id=project_id,
                 kind="queue.enqueued",
-                payload={"queue_id": item.id, "kind": kind.value},
+                payload={
+                    "queue_id": item.id,
+                    "kind": kind.value,
+                    "requires_gpu": item.requires_gpu,
+                },
             )
         return item
 
-    def claim_next(self, kind: QueueKind) -> QueueItem | None:
+    def claim_next(
+        self,
+        kind: QueueKind,
+        *,
+        worker_id: str | None = None,
+        lease_seconds: int = 300,
+        gpu_capacity: int = 1,
+    ) -> QueueItem | None:
+        """Claim the next pending item for ``kind``, or ``None`` if not admissible.
+
+        At most one item per ``kind`` runs at a time. If the highest-priority
+        pending item requires the GPU, it is only claimed while fewer than
+        ``gpu_capacity`` GPU-requiring items are running system-wide (across
+        all kinds); otherwise this call returns ``None`` for now rather than
+        skipping ahead to a lower-priority non-GPU item.
+        """
+
+        if lease_seconds < 1:
+            raise ValueError("lease_seconds must be positive")
+        if gpu_capacity < 0:
+            raise ValueError("gpu_capacity must not be negative")
         with self.transaction() as connection:
             running = connection.execute(
                 "SELECT 1 FROM work_queue WHERE kind=? AND status=? LIMIT 1",
@@ -902,13 +1170,33 @@ class Database:
             ).fetchone()
             if row is None:
                 return None
+            if row["requires_gpu"]:
+                gpu_running = connection.execute(
+                    "SELECT COUNT(*) AS n FROM work_queue WHERE status=? AND requires_gpu=1",
+                    (QueueStatus.RUNNING.value,),
+                ).fetchone()
+                if int(gpu_running["n"]) >= gpu_capacity:
+                    return None
             now = utc_now()
+            lease_token = secrets.token_urlsafe(32)
+            lease_expires_at = now + timedelta(seconds=lease_seconds)
             connection.execute(
                 """
-                UPDATE work_queue SET status=?, started_at=?, updated_at=?, error=NULL
+                UPDATE work_queue
+                SET status=?, started_at=?, updated_at=?, error=NULL, error_class=NULL,
+                    lease_token=?, lease_expires_at=?, heartbeat_at=?, claimed_by=?
                 WHERE id=?
                 """,
-                (QueueStatus.RUNNING.value, _iso(now), _iso(now), row["id"]),
+                (
+                    QueueStatus.RUNNING.value,
+                    _iso(now),
+                    _iso(now),
+                    lease_token,
+                    _iso(lease_expires_at),
+                    _iso(now),
+                    worker_id,
+                    row["id"],
+                ),
             )
             updated = connection.execute(
                 "SELECT * FROM work_queue WHERE id=?", (row["id"],)
@@ -918,18 +1206,143 @@ class Database:
                 connection,
                 project_id=row["project_id"],
                 kind="queue.started",
-                payload={"queue_id": row["id"], "kind": kind.value},
+                payload={"queue_id": row["id"], "kind": kind.value, "worker_id": worker_id},
             )
         return self._queue_item_from_row(updated)
 
-    def complete_queue_item(self, item_id: str) -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.COMPLETED, None)
+    def heartbeat_queue_item(
+        self, item_id: str, lease_token: str, *, lease_seconds: int = 300
+    ) -> None:
+        """Renew a running item's lease; proves the claiming worker is alive."""
 
-    def fail_queue_item(self, item_id: str, error: str) -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.FAILED, error)
+        if lease_seconds < 1:
+            raise ValueError("lease_seconds must be positive")
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown queue item: {item_id}")
+            if QueueStatus(row["status"]) != QueueStatus.RUNNING:
+                raise InvalidTransition("only a running queue item can be heartbeated")
+            if row["lease_token"] != lease_token:
+                raise PermissionError(
+                    "queue item lease token does not match; stale worker cannot renew this claim"
+                )
+            now = utc_now()
+            connection.execute(
+                """
+                UPDATE work_queue SET heartbeat_at=?, lease_expires_at=?, updated_at=?
+                WHERE id=?
+                """,
+                (_iso(now), _iso(now + timedelta(seconds=lease_seconds)), _iso(now), item_id),
+            )
 
-    def cancel_queue_item(self, item_id: str, error: str = "cancelled") -> QueueItem:
-        return self._finish_queue_item(item_id, QueueStatus.CANCELLED, error)
+    def reclaim_expired_leases(self, *, now: datetime | None = None) -> int:
+        """Fail running items whose lease expired without a heartbeat/completion.
+
+        Complements :meth:`recover_queue` (which handles a full process
+        restart) by detecting a claim that has gone silent -- for example a
+        crashed external worker subprocess -- without requiring this process
+        to be the one that restarted.
+        """
+
+        current = now or utc_now()
+        with self.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM work_queue
+                WHERE status=? AND lease_expires_at IS NOT NULL AND lease_expires_at < ?
+                """,
+                (QueueStatus.RUNNING.value, _iso(current)),
+            ).fetchall()
+            for row in rows:
+                connection.execute(
+                    """
+                    UPDATE work_queue
+                    SET status=?, completed_at=?, updated_at=?, error=?, error_class=?,
+                        lease_token=NULL, lease_expires_at=NULL
+                    WHERE id=?
+                    """,
+                    (
+                        QueueStatus.FAILED.value,
+                        _iso(current),
+                        _iso(current),
+                        "lease expired without heartbeat or completion",
+                        WorkerErrorClass.TIMEOUT.value,
+                        row["id"],
+                    ),
+                )
+                self._insert_event(
+                    connection,
+                    project_id=row["project_id"],
+                    kind="queue.lease_expired",
+                    payload={"queue_id": row["id"], "worker_id": row["claimed_by"]},
+                )
+        return len(rows)
+
+    def request_cancel_queue_item(self, item_id: str) -> None:
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown queue item: {item_id}")
+            connection.execute(
+                "UPDATE work_queue SET cancel_requested=1, updated_at=? WHERE id=?",
+                (_iso(utc_now()), item_id),
+            )
+            self._insert_event(
+                connection,
+                project_id=row["project_id"],
+                kind="queue.cancel_requested",
+                payload={"queue_id": item_id},
+            )
+
+    def queue_cancellation_requested(self, item_id: str) -> bool:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT cancel_requested FROM work_queue WHERE id=?", (item_id,)
+            ).fetchone()
+        if row is None:
+            raise KeyError(f"unknown queue item: {item_id}")
+        return bool(row["cancel_requested"])
+
+    def complete_queue_item(self, item_id: str, lease_token: str | None = None) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.COMPLETED,
+            error=None,
+            error_class=None,
+            lease_token=lease_token,
+        )
+
+    def fail_queue_item(
+        self,
+        item_id: str,
+        error: str,
+        *,
+        error_class: WorkerErrorClass | None = None,
+        lease_token: str | None = None,
+    ) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.FAILED,
+            error=error,
+            error_class=error_class,
+            lease_token=lease_token,
+        )
+
+    def cancel_queue_item(
+        self, item_id: str, error: str = "cancelled", *, lease_token: str | None = None
+    ) -> QueueItem:
+        return self._finish_queue_item(
+            item_id,
+            QueueStatus.CANCELLED,
+            error=error,
+            error_class=WorkerErrorClass.CANCELLED,
+            lease_token=lease_token,
+        )
 
     def recover_queue(self) -> int:
         now = utc_now()
@@ -941,7 +1354,10 @@ class Database:
             for row in rows:
                 connection.execute(
                     """
-                    UPDATE work_queue SET status=?, started_at=NULL, updated_at=?, error=?
+                    UPDATE work_queue
+                    SET status=?, started_at=NULL, updated_at=?, error=?, error_class=NULL,
+                        lease_token=NULL, lease_expires_at=NULL, heartbeat_at=NULL,
+                        claimed_by=NULL
                     WHERE id=?
                     """,
                     (
@@ -982,7 +1398,13 @@ class Database:
         return [self._queue_item_from_row(row) for row in rows]
 
     def _finish_queue_item(
-        self, item_id: str, status: QueueStatus, error: str | None
+        self,
+        item_id: str,
+        status: QueueStatus,
+        *,
+        error: str | None,
+        error_class: WorkerErrorClass | None,
+        lease_token: str | None,
     ) -> QueueItem:
         if status not in {
             QueueStatus.COMPLETED,
@@ -998,13 +1420,30 @@ class Database:
                 raise KeyError(f"unknown queue item: {item_id}")
             if QueueStatus(row["status"]) != QueueStatus.RUNNING:
                 raise InvalidTransition("only a running queue item can finish")
+            if (
+                lease_token is not None
+                and row["lease_token"] is not None
+                and row["lease_token"] != lease_token
+            ):
+                raise PermissionError(
+                    "queue item lease token does not match; stale worker cannot finish this claim"
+                )
             now = utc_now()
             connection.execute(
                 """
-                UPDATE work_queue SET status=?, completed_at=?, updated_at=?, error=?
+                UPDATE work_queue
+                SET status=?, completed_at=?, updated_at=?, error=?, error_class=?,
+                    lease_token=NULL, lease_expires_at=NULL
                 WHERE id=?
                 """,
-                (status.value, _iso(now), _iso(now), error, item_id),
+                (
+                    status.value,
+                    _iso(now),
+                    _iso(now),
+                    error,
+                    error_class.value if error_class else None,
+                    item_id,
+                ),
             )
             updated = connection.execute(
                 "SELECT * FROM work_queue WHERE id=?", (item_id,)
@@ -1014,7 +1453,11 @@ class Database:
                 connection,
                 project_id=row["project_id"],
                 kind=f"queue.{status.value}",
-                payload={"queue_id": item_id, "error": error},
+                payload={
+                    "queue_id": item_id,
+                    "error": error,
+                    "error_class": error_class.value if error_class else None,
+                },
             )
         return self._queue_item_from_row(updated)
 
@@ -1022,6 +1465,8 @@ class Database:
     def _queue_item_from_row(row: sqlite3.Row) -> QueueItem:
         values: dict[str, Any] = dict(row)
         values["payload"] = json.loads(values.pop("payload_json"))
+        values["requires_gpu"] = bool(values["requires_gpu"])
+        values["cancel_requested"] = bool(values["cancel_requested"])
         return QueueItem.model_validate(values)
 
     def list_events(self, project_id: str) -> list[Event]:

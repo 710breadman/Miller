@@ -59,6 +59,21 @@ def test_cache_and_scoped_invalidation(tmp_path: Path) -> None:
     assert all(run.status == StageStatus.COMPLETED for run in db.list_stage_runs(project_id))
 
 
+def test_missing_cached_artifact_is_rebuilt_without_rerunning_dependents(
+    tmp_path: Path,
+) -> None:
+    calls: dict[str, int] = {}
+    db, runner, project_id = build_runner(tmp_path, calls)
+    first = runner.run(project_id)
+    runner.artifacts.resolve(first["a"]).unlink()
+
+    second = runner.run(project_id)
+
+    assert calls == {"a": 2, "b": 1, "c": 1}
+    assert runner.artifacts.resolve(second["a"]).is_file()
+    assert first["a"].content_id == second["a"].content_id
+
+
 def test_failed_stage_resumes_without_rerunning_completed_dependency(tmp_path: Path) -> None:
     calls: dict[str, int] = {}
     db, runner, project_id = build_runner(tmp_path, calls)

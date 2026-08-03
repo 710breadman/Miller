@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://miller.local/schemas/e5-acceptance-record.schema.json",
+  "title": "Miller E5 human acceptance record",
+  "description": "Immutable, content-addressed record of a human visual/audio/narrative review, per QAE-001 (EVALUATION_PLAN.md). Write-once: a record is never edited after content_hash is computed; a later review supersedes it via the supersedes field instead.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "created_at",
+    "roadmap_item",
+    "artifact",
+    "reviewers",
+    "scores",
+    "overall_score",
+    "threshold_result",
+    "disagreement",
+    "automated_flags",
+    "content_hash"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "record_id": {
+      "type": "string",
+      "pattern": "^e5_[0-9a-f]{64}$",
+      "description": "e5_ prefix followed by the sha256 of the record's canonical content (content_hash)."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "supersedes": {
+      "type": ["string", "null"],
+      "pattern": "^e5_[0-9a-f]{64}$",
+      "default": null,
+      "description": "record_id of an earlier record this one replaces (e.g. after a repair pass), or null for a first review."
+    },
+    "roadmap_item": {
+      "type": "string",
+      "description": "The sprint/roadmap item this acceptance record supports, e.g. STO-005, REL-002."
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project_id", "render_path", "render_sha256"],
+      "properties": {
+        "project_id": { "type": "string", "minLength": 1 },
+        "render_path": { "type": "string", "minLength": 1 },
+        "render_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "source_hashes": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "description": "Optional map of source-input name to sha256, for provenance."
+        }
+      }
+    },
+    "reviewers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "contains": {
+        "type": "object",
+        "required": ["role"],
+        "properties": { "role": { "const": "primary_reviewer" } }
+      },
+      "minContains": 1,
+      "maxContains": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "identifier", "date"],
+        "properties": {
+          "role": { "type": "string", "enum": ["primary_reviewer", "secondary_reviewer"] },
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name, handle, or other stable identifier for the reviewer. Never store secrets/credentials here."
+          },
+          "date": { "type": "string", "format": "date" }
+        }
+      },
+      "description": "Exactly one primary_reviewer is required (EVALUATION_PLAN.md); secondary_reviewer is optional."
+    },
+    "scores": {
+      "type": "object",
+      "description": "Dimension name to 1-5 integer score, per the rubric in EVALUATION_PLAN.md (visual/audio/narrative dimensions).",
+      "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 5 },
+      "minProperties": 1
+    },
+    "overall_score": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Unweighted mean of the scores map."
+    },
+    "threshold_result": {
+      "type": "string",
+      "enum": ["accepted", "needs_repair", "rejected"],
+      "description": "Derived from overall_score and the per-dimension floor rule in EVALUATION_PLAN.md; never set by automated review alone."
+    },
+    "disagreement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["occurred"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "occurred": { "const": true } },
+            "required": ["occurred"]
+          },
+          "then": {
+            "required": ["dimension", "primary_score", "secondary_score", "resolution"]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                { "required": ["dimension"] },
+                { "required": ["primary_score"] },
+                { "required": ["secondary_score"] },
+                { "required": ["resolution"] }
+              ]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "occurred": { "type": "boolean" },
+        "dimension": { "type": "string" },
+        "primary_score": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "secondary_score": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "resolution": {
+          "type": "string",
+          "description": "Consensus note, or an explicit statement that no consensus was reached and the primary reviewer's score is authoritative."
+        }
+      }
+    },
+    "automated_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Advisory findings from src/miller/quality/ (editorial.py, media.py). Informational only; never sets threshold_result."
+    },
+    "comments": { "type": "string" },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 of this record's canonical JSON (sorted keys, compact separators) with the derived content_hash and record_id fields excluded from the hashed payload."
+    }
+  }
+}

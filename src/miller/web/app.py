@@ -214,7 +214,6 @@ const status = (message, bad=false) => {
   const node = document.getElementById("status"); node.textContent = message;
   node.style.color = bad ? "#ff9b9b" : "#aeb8c8";
 };
-const escapeHtml = value => String(value).replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
 async function api(path, options={}) {
   const response = await fetch(path, {headers:{"Content-Type":"application/json"}, ...options});
   const data = await response.json().catch(() => ({}));
@@ -235,24 +234,65 @@ async function command(name, sceneId, values={}) {
     render(); status(`Saved revision ${snapshot.revision}.`);
   } catch (error) { status(error.message, true); if (String(error.message).includes("revision")) loadStoryboard(); }
 }
-function options(values, selected) { return values.map(v => `<option ${v===selected?'selected':''}>${v}</option>`).join(""); }
+function node(tag, className="", text="") {
+  const result = document.createElement(tag);
+  if (className) result.className = className;
+  result.textContent = text;
+  return result;
+}
+function selectControl(values, selected, disabled, onChange) {
+  const select = node("select");
+  select.disabled = disabled;
+  values.forEach(value => select.add(new Option(value, value, value === selected, value === selected)));
+  select.addEventListener("change", () => onChange(select.value));
+  return select;
+}
 function render() {
   document.getElementById("revision").textContent = `revision ${snapshot.revision}`;
-  document.getElementById("scenes").innerHTML = snapshot.storyboard.scenes.map(scene => `
-    <section class="scene ${scene.locked?'locked':''}">
-      <div><div class="time">${scene.start.toFixed(2)}–${scene.end.toFixed(2)}s</div><div class="badge">${escapeHtml(scene.id)}</div></div>
-      <div>
-        <div class="narration">${escapeHtml(scene.narration)}</div>
-        <div>Primary: <span class="asset">${escapeHtml(scene.primary_asset)}</span></div>
-        <div class="alternatives">${scene.alternatives.map(a => `<button ${scene.locked?'disabled':''} onclick="command('replace-asset','${scene.id}',{asset_id:'${escapeHtml(a)}'})">Use ${escapeHtml(a)}</button>`).join("")}</div>
-        <div class="controls">
-          <select ${scene.locked?'disabled':''} onchange="command('motion','${scene.id}',{preset:this.value})">${options(motions, scene.camera.preset)}</select>
-          <select ${scene.locked?'disabled':''} onchange="command('transition','${scene.id}',{transition:this.value})">${options(transitions, scene.transition)}</select>
-          <input ${scene.locked?'disabled':''} value="${escapeHtml(scene.music_state)}" aria-label="music state" onchange="command('music','${scene.id}',{music_state:this.value})">
-          <button onclick="command('lock','${scene.id}',{locked:${!scene.locked}})">${scene.locked?'Unlock':'Lock'}</button>
-        </div>
-      </div>
-    </section>`).join("");
+  const scenes = document.getElementById("scenes");
+  scenes.replaceChildren();
+  snapshot.storyboard.scenes.forEach(scene => {
+    const section = node("section", `scene ${scene.locked ? "locked" : ""}`);
+    const summary = node("div");
+    summary.append(
+      node("div", "time", `${scene.start.toFixed(2)}–${scene.end.toFixed(2)}s`),
+      node("div", "badge", scene.id),
+    );
+
+    const detail = node("div");
+    detail.append(node("div", "narration", scene.narration));
+    const primary = node("div", "", "Primary: ");
+    primary.append(node("span", "asset", scene.primary_asset));
+    detail.append(primary);
+
+    const alternatives = node("div", "alternatives");
+    scene.alternatives.forEach(assetId => {
+      const button = node("button", "", `Use ${assetId}`);
+      button.disabled = scene.locked;
+      button.addEventListener("click", () => command("replace-asset", scene.id, {asset_id: assetId}));
+      alternatives.append(button);
+    });
+    detail.append(alternatives);
+
+    const controls = node("div", "controls");
+    controls.append(
+      selectControl(motions, scene.camera.preset, scene.locked, value => command("motion", scene.id, {preset: value})),
+      selectControl(transitions, scene.transition, scene.locked, value => command("transition", scene.id, {transition: value})),
+    );
+    const music = node("input");
+    music.disabled = scene.locked;
+    music.value = scene.music_state;
+    music.setAttribute("aria-label", "music state");
+    music.addEventListener("change", () => command("music", scene.id, {music_state: music.value}));
+    controls.append(music);
+    const lock = node("button", "", scene.locked ? "Unlock" : "Lock");
+    lock.addEventListener("click", () => command("lock", scene.id, {locked: !scene.locked}));
+    controls.append(lock);
+    detail.append(controls);
+
+    section.append(summary, detail);
+    scenes.append(section);
+  });
 }
 const query = new URLSearchParams(location.search).get("project");
 if (query) { document.getElementById("project").value = query; loadStoryboard(); }

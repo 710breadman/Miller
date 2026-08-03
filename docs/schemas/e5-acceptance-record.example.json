@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "record_id": "e5_1979b73ffc373126b8090725ccdf360c9191faa46e857638d625d499b0f947f4",
+  "created_at": "2026-07-29T18:00:00+00:00",
+  "supersedes": null,
+  "roadmap_item": "STO-005",
+  "artifact": {
+    "project_id": "project_example_golden_short",
+    "render_path": "renders/final/project_example_golden_short.mp4",
+    "render_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "source_hashes": {
+      "script": "1111111111111111111111111111111111111111111111111111111111111111",
+      "narration": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "reviewers": [
+    {
+      "role": "primary_reviewer",
+      "identifier": "owner",
+      "date": "2026-07-29"
+    }
+  ],
+  "scores": {
+    "crop_composition_safety": 4,
+    "text_free_cleanliness": 5,
+    "motion_transition_appropriateness": 4,
+    "visual_variety": 4,
+    "narration_clarity_levels": 5,
+    "music_narration_balance": 4,
+    "av_sync": 5,
+    "narration_relevance": 4,
+    "emotional_thematic_support": 4,
+    "character_continuity_correctness": 5
+  },
+  "overall_score": 4.4,
+  "threshold_result": "accepted",
+  "disagreement": {
+    "occurred": false
+  },
+  "automated_flags": [],
+  "comments": "Synthetic illustrative example for the QAE-001 schema, not a real acceptance record. This is an acceptance-short (30-90s) golden project style entry; no real project media is referenced.",
+  "content_hash": "1979b73ffc373126b8090725ccdf360c9191faa46e857638d625d499b0f947f4"
+}

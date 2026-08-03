@@ -1,9 +1,10 @@
 # Miller development roadmap
 
-`SPRINT_STATE.json` is the machine-readable source for the active canonical
-checkpoint. Later sprints may have software implemented ahead of the canonical
-order, but a sprint is not declared complete until its real acceptance evidence
-exists.
+This file preserves the original capability roadmap and its historical sprint
+numbering. `SPRINT_STATE.json` is the machine-readable source for the current
+control sprint and supersedes any "active" label below. Later roadmap work may
+have software implemented ahead of the canonical order, but no control sprint is
+declared complete until its required acceptance evidence exists.
 
 ## Common completion gate
 
@@ -36,7 +37,7 @@ extraction cache, thumbnails, and incremental reconciliation.
 Versioned page/panel/OCR/mask/description/quality records, conservative panel
 candidates, Tesseract adapter, deterministic analysis, and searchable local index.
 
-## Sprint 4 — Retrieval benchmark — canonical active sprint
+## Sprint 4 — Retrieval benchmark — historical active sprint; currently evidence-blocked
 
 ### 4.1 Benchmark schema and runner — complete
 

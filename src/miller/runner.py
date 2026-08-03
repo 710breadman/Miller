@@ -36,12 +36,14 @@ class StageContext:
 
 
 StageHandler = Callable[[StageContext], Any]
+CacheValidator = Callable[[Artifact, Mapping[str, Any], ArtifactStore], bool]
 
 
 @dataclass(frozen=True)
 class RuntimeStage:
     definition: StageDefinition
     handler: StageHandler
+    cache_validator: CacheValidator | None = None
 
 
 class PipelineRunner:
@@ -101,15 +103,34 @@ class PipelineRunner:
             if run.status == StageStatus.COMPLETED and run.input_fingerprint == fingerprint:
                 assert run.output_artifact_id is not None
                 cached = self.database.get_artifact(run.output_artifact_id)
-                self.artifacts.resolve(cached)
-                outputs[stage_id] = cached
+                cache_error: str | None = None
+                try:
+                    self.artifacts.resolve(cached)
+                    cache_valid = stage.cache_validator is None or stage.cache_validator(
+                        cached, config, self.artifacts
+                    )
+                except (OSError, RuntimeError, ValueError) as exc:
+                    cache_valid = False
+                    cache_error = str(exc)
+                if cache_valid:
+                    outputs[stage_id] = cached
+                    log.append(
+                        "stage.cache_hit",
+                        stage_id=stage_id,
+                        stage_run_id=run.id,
+                        artifact_id=cached.id,
+                    )
+                    continue
+                invalid_fingerprint = f"{fingerprint}:invalid-cache"
+                self.database.invalidate_if_changed(run.id, invalid_fingerprint)
+                run = self.database.get_stage_run_by_id(run.id)
                 log.append(
-                    "stage.cache_hit",
+                    "stage.cache_invalid",
                     stage_id=stage_id,
                     stage_run_id=run.id,
                     artifact_id=cached.id,
+                    error=cache_error,
                 )
-                continue
             attempt = self.database.begin_attempt(run.id, fingerprint)
             running = self.database.get_stage_run_by_id(run.id)
             def is_cancelled(run_id: str = run.id) -> bool:

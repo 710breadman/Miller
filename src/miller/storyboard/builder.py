@@ -21,11 +21,19 @@ from .models import (
 
 
 class StoryboardBuilder:
-    def __init__(self, records: Iterable[PageAnalysis]) -> None:
+    def __init__(
+        self,
+        records: Iterable[PageAnalysis],
+        *,
+        narrative_scores: Mapping[str, float] | None = None,
+    ) -> None:
         self.records = {record.page_id: record for record in records}
         if not self.records:
             raise ValueError("storyboard builder requires analyzed pages")
         self.retriever = LexicalRetriever(self.records.values())
+        self.narrative_scores = dict(narrative_scores or {})
+        if any(value < 0 or value > 1 for value in self.narrative_scores.values()):
+            raise ValueError("narrative scores must be between 0 and 1")
 
     def build(
         self,
@@ -146,8 +154,9 @@ class StoryboardBuilder:
                 )
             )
             quality = record.quality.overall_score
+            narrative = self.narrative_scores.get(item.asset_id, 0.0)
             reuse_penalty = min(1.0, usage[item.asset_id] * 0.55)
-            total = max(
+            base_total = max(
                 0.0,
                 min(
                     1.0,
@@ -159,7 +168,10 @@ class StoryboardBuilder:
                     - reuse_penalty * 0.45,
                 ),
             )
+            total = min(1.0, base_total * (0.75 if narrative else 1.0) + narrative * 0.25)
             reasons = [f"lexical={lexical:.3f}", f"quality={quality:.3f}"]
+            if narrative:
+                reasons.append(f"comic-sorter-narrative={narrative:.3f}")
             if characters & scope_characters:
                 reasons.append("character match")
             if continuity == 1.0 and scope.series:
@@ -174,6 +186,7 @@ class StoryboardBuilder:
                         theme=theme_score,
                         continuity=continuity,
                         quality=quality,
+                        narrative=narrative,
                         reuse_penalty=reuse_penalty,
                         total=total,
                     ),

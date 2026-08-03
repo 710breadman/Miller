@@ -162,6 +162,17 @@ class QueueStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class WorkerErrorClass(StrEnum):
+    """Classifies why a queue item failed, for future retry/backoff policy."""
+
+    TRANSIENT = "transient"
+    FATAL = "fatal"
+    TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
+    PROTOCOL_MISMATCH = "protocol_mismatch"
+    RESOURCE_EXHAUSTED = "resource_exhausted"
+
+
 class QueueItem(FrozenModel):
     id: str = Field(min_length=1, max_length=128)
     project_id: str = Field(min_length=1, max_length=128)
@@ -169,6 +180,14 @@ class QueueItem(FrozenModel):
     status: QueueStatus = QueueStatus.PENDING
     priority: int = Field(default=100, ge=0, le=1_000_000)
     payload: dict[str, Any] = Field(default_factory=dict)
+    requires_gpu: bool = False
+    protocol_version: str = Field(default="1", min_length=1, max_length=20)
+    claimed_by: str | None = Field(default=None, max_length=200)
+    lease_token: str | None = Field(default=None, min_length=16, max_length=256)
+    lease_expires_at: datetime | None = None
+    heartbeat_at: datetime | None = None
+    cancel_requested: bool = False
+    error_class: WorkerErrorClass | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
     started_at: datetime | None = None
@@ -186,4 +205,10 @@ class QueueItem(FrozenModel):
         }
         if terminal and self.completed_at is None:
             raise ValueError("terminal queue item requires completed_at")
+        if self.status == QueueStatus.RUNNING and self.lease_token is None:
+            raise ValueError("running queue item requires a lease token")
+        if self.status != QueueStatus.RUNNING and (
+            self.lease_token is not None or self.lease_expires_at is not None
+        ):
+            raise ValueError("only a running queue item may hold an active lease")
         return self
