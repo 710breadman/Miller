@@ -2,7 +2,7 @@
 
 Assessment date: **2026-08-02**
 Repository: `710breadman/Miller`  
-Inspected branch: `codex/env-001` at pre-`ENV-003` checkpoint `0cfc280`; active control sprint: `ARC-002`
+Inspected branch: `codex/env-001` at pre-`ARC-002` checkpoint `f349a18`; active control sprint: `ARC-004`
 
 ## Executive assessment
 
@@ -10,7 +10,7 @@ Miller is **not a blank project**. It has a coherent Python foundation, strong o
 
 It is also **not yet a proven comic-understanding or production-quality video system**. The current end-to-end baseline uses filename/OCR text, simple white-gutter panel heuristics, uniform audio timing, and greedy lexical scene selection. It now has one real 70-second E3 run, but that run exposed page-level crops, visible lettering, an ad/tag selection, reuse, and no clear OCR relevance gain. Most model-backed integrations remain contracts without a shipped worker environment or quantitative real-corpus evidence. The local web interface is a minimal inline prototype.
 
-The correct next move is to make the proven baseline use the durable DAG, then benchmark comic analysis and retrieval on owner-approved labels. ENV-001 synthetic and ENV-003 real baseline acceptance reached E3; quantitative real-corpus and human gates remain open.
+The baseline now uses the durable DAG. The correct next move is atomic output promotion and recovery, then comic-analysis and retrieval benchmarks on owner-approved labels. ENV-001 synthetic, ENV-003 real baseline, and ARC-002 real DAG execution reached E3; quantitative real-corpus and human gates remain open.
 
 ## Evidence levels
 
@@ -45,6 +45,9 @@ No capability may be called “complete and verified” without naming the highe
 - `ENV-003` produced real no-OCR and OCR H.264/AAC baselines from a 70-second managed excerpt. Both fully decoded,
   had no detected black segment over 0.5 seconds, preserved source hashes, and stored complete project documents in
   an integrity-checked SQLite database. Visual quality needs repair; this remains E3, not E4/E5.
+- `ARC-002` routes the baseline through five durable `PipelineRunner` stages. Automated tests prove abandoned-render
+  recovery, dependency reuse, and missing-output invalidation (E2). A real Windows run took 165.671 seconds; the
+  identical restart took 2.527 seconds with five cache hits and the same fully decoded MP4 hash (E3 execution).
 
 ## What lacks proof
 
@@ -105,9 +108,9 @@ FFmpeg render → quality checks → bounded repair
 
 | Subsystem | Intended purpose | Current status | Relevant files | Proven | Missing or weak | Next action |
 |---|---|---|---|---|---|---|
-| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E3 transaction/recovery tests plus ordered migrations, preflight backup, integrity checks, and a restore drill (`ARC-001`, local Windows run) | large real-project database restart/interruption acceptance | `ARC-002`, `ENV-004` |
+| Project/state database | authoritative projects, stages, attempts, queue, documents, events | implemented foundation | `src/miller/db.py`, `models.py`, `transitions.py` | E3 transaction/recovery tests plus ordered migrations, preflight backup, integrity checks, restore drill, and real baseline DAG persistence (`ARC-001`, `ARC-002`) | process-kill and large-project restart acceptance | `ENV-004` |
 | Artifact store | immutable content-addressed outputs and hashes | implemented foundation | `artifacts.py`, `runtime/cache.py` | E2 cache/invalidation tests | large-cache performance and Windows path proof | `ENV-004`, `VID-004` |
-| Pipeline runner | deterministic DAG, cache, cancellation, retries | implemented but not used by baseline | `runner.py` | E2 isolated DAG tests | baseline composition and real restart | `ARC-002` |
+| Pipeline runner | deterministic DAG, cache, cancellation, retries | integrated with baseline | `runner.py`, `pipeline/baseline.py` | E2 interruption/restart automation plus E3 real five-stage execution and cache reuse (`ARC-002`) | process-kill, partial-output, and concurrent-run proof | `ARC-004`, `ENV-004` |
 | Queue | persistent bounded work | implemented foundation | `workers.py`, DB queue tables | E3 versioned protocol, lease/heartbeat, stale-result guard, cancellation, timeout, error classes, and one-GPU admission (`ARC-003`, local Windows run) | priority scheduling across a single lease-holding item, real external-worker adapter integration | `ANL-005`, `RET-004`, `AUD-001` |
 | Folder/CBZ ingest | safe read-only source inventory | strong implementation | `comics/` | E3 archive/path/image adversarial fuzzing (`SEC-001`, local Windows run) plus prior changed-source tests | CBR/PDF (real CBR files exist in the owner's library per `ENV-002`), double-page semantics | `ENV-002` |
 | Page derivation | managed source copies/crops/masks | implemented contracts | `derived/` | E2 deterministic output tests | production crop policy, panel asset identity across reanalysis | `ANL-001` |
@@ -281,6 +284,6 @@ render.
 
 ## Recommended immediate action
 
-`ENV-003` is accepted at E3 technical evidence, with explicit quality failures and no E4/E5 claim. `ARC-002` is now
-active: route the existing baseline through `PipelineRunner` and prove restart behavior without changing analysis,
-retrieval, storyboard, or render semantics. `ANL-001`, `ENV-004`, and `QAE-002` are ready alternatives.
+`ARC-002` is accepted: five durable baseline stages, E2 automated interruption/restart proof, and E3 real Windows
+execution/cache reuse. `ARC-004` is active: make output promotion atomic and prove recovery without overwriting
+existing files. `ANL-001`, `ENV-004`, and `QAE-002` remain ready alternatives. Visual E4/E5 remains open.

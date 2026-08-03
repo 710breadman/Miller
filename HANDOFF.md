@@ -1,8 +1,8 @@
 # Miller handoff
 
-Status: **`ENV-003` accepted at E3 technical evidence; `ARC-002` active; visual quality needs repair; `AUD-001` remains incomplete/E2**
+Status: **`ARC-002` accepted with E2 restart and E3 real-run evidence; `ARC-004` active; visual quality needs repair**
 Planning revision: `2026-07-21-definitive`  
-Active sprint: **`ARC-002` — Durable baseline DAG integration**
+Active sprint: **`ARC-004` — Atomic output and artifact audit**
 
 ## What was completed
 
@@ -20,6 +20,12 @@ Active sprint: **`ARC-002` — Durable baseline DAG integration**
   complete documents in an integrity-checked SQLite database. No-OCR took 114.324 seconds; OCR took about 140.9
   seconds and produced 1,199 regions. Manual review found page-level crops, visible lettering, an OCR-selected
   ad/tag page, reuse, and no clear relevance improvement, so quality is `needs_repair` and E4/E5 remain open;
+- `ARC-002`: the existing baseline API now executes five durable `PipelineRunner` stages for ingest, analysis and
+  derived assets, uniform alignment, retrieval/storyboard, and render. Focused tests prove cache reuse,
+  missing-output invalidation, project-scoped abandoned-attempt recovery, and restart without recomputing completed
+  predecessors, plus reconstruction of a missing managed cache artifact (18 passed). A real 70-second Green Lantern
+  run took 165.671 seconds; an identical restart took 2.527 seconds with five cache hits, the same fully decoded MP4
+  hash, and SQLite `quick_check=ok`;
 - `ARC-003` versioned worker protocol, lease/heartbeat, a stale-result guard, cooperative cancellation, timeout
   detection, typed error classes, and single-GPU admission in `src/miller/{db,models,workers}.py`;
 - `AUD-001` produced a standalone alignment worker contract, probe/unload operations, and CPU-fallback auto-device
@@ -69,9 +75,18 @@ visible ad and repeated art. A separate dedicated RTX 3070 text/evidence review 
 claim and explicitly kept E4/E5 unproven. Final gate passed: frozen sync, Ruff, strict Mypy, 133 passed/1 Windows
 symlink skip, sdist/wheel build, planning validator (55 cards; active `ARC-002`), and `git diff --check`.
 
+`ARC-002` then passed its bounded objective. The implementation and tests stay within the card's allowed files and
+preserve the public baseline/CLI result contract. Content-addressed stage artifacts and dependency/config hashes
+make completed work reusable; the render cache also verifies the external MP4 path and SHA-256. Synthetic
+interruption proof is E2; the real Windows DAG/cache run is E3. The acceptance report is
+`.miller/acceptance/ARC-002-report.json`. A dedicated RTX 3070 `qwen3.5:9b` review returned `ACCEPT`; Codex rejected
+its speculative concerns about read-only source access and managed artifact paths. Atomic output promotion and a
+real process-kill drill remain explicitly assigned to `ARC-004` and `ENV-004`.
+
 ## What was not done
 
 - no crash-mid-operation interruption drill for `ARC-001`, `ARC-003`, or `AUD-001` — deferred to `ENV-004`;
+- `ARC-002` restart recovery is automated/synthetic; a real process-kill and partial-output recovery drill remains;
 - `ARC-003`'s new protocol is not yet wired into the actual external adapters — `ANL-005`/`RET-004` work;
 - `AUD-001` did not produce a fully pinned environment or install/run real WhisperX/stable-ts/torch — no model
   weights were downloaded;
@@ -85,9 +100,8 @@ symlink skip, sdist/wheel build, planning validator (55 cards; active `ARC-002`)
 
 ## Exact next action
 
-Execute `ARC-002`: route ingest, analysis, uniform alignment, retrieval, storyboard, derived assets, and render
-through `PipelineRunner`; preserve the current CLI and ENV-003 fallback behavior; add restart/cache/invalidation
-proof; then run the focused and full gates. Do not change analysis/retrieval/storyboard/video semantics on this card.
+Execute `ARC-004`: audit all artifact and external render writes, implement atomic output promotion without
+overwriting existing files, and prove recovery from an interrupted render. Preserve ARC-002 stage/cache behavior.
 
 ## Do not redo
 
@@ -104,5 +118,5 @@ heavy model environment; `OD-001` remains owner-only.
 
 ## Context startup
 
-Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ARC-002` card, this
+Read `PROJECT_CHARTER.md`, the executive section of `CURRENT_STATE.md`, `SPRINT_STATE.json`, the `ARC-004` card, this
 handoff, and Git status. Do not load all sprint cards into Gemma context.

@@ -47,6 +47,21 @@ def test_recover_abandoned_attempt(tmp_path: Path) -> None:
     assert recovered.active_attempt_id is None
 
 
+def test_recover_abandoned_attempt_can_be_scoped_to_one_project(tmp_path: Path) -> None:
+    db = make_db(tmp_path)
+    first = db.create_project("First", tmp_path / "first", "project_first")
+    second = db.create_project("Second", tmp_path / "second", "project_second")
+    db.register_stage(StageDefinition(id="stage_a", name="A", version="1"))
+    first_run = db.ensure_stage_run(first.id, "stage_a")
+    second_run = db.ensure_stage_run(second.id, "stage_a")
+    db.begin_attempt(first_run.id, "sha256:" + "1" * 64)
+    db.begin_attempt(second_run.id, "sha256:" + "2" * 64)
+
+    assert db.recover_abandoned(first.id) == 1
+    assert db.get_stage_run_by_id(first_run.id).status == StageStatus.FAILED
+    assert db.get_stage_run_by_id(second_run.id).status == StageStatus.RUNNING
+
+
 def test_migrations_are_dense_ordered_and_reach_latest_version() -> None:
     versions = [migration.version for migration in _MIGRATIONS]
     assert versions == sorted(versions)

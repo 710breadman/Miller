@@ -2,7 +2,7 @@
   "schema_version": 2,
   "planning_revision": "2026-07-21-definitive",
   "updated_at": "2026-08-02",
-  "active_sprint": "ARC-002",
+  "active_sprint": "ARC-004",
   "completed_sprints": [
     "INV-001",
     "INV-002",
@@ -13,6 +13,7 @@
     "INV-003",
     "DOC-001",
     "ARC-001",
+    "ARC-002",
     "ARC-003",
     "SEC-001",
     "SEC-002",
@@ -31,6 +32,7 @@
     "human_quality_rubric": "E2",
     "approved_local_acceptance_fixture": "E3",
     "real_no_ai_baseline": "E3",
+    "durable_baseline_dag": "E3",
     "real_comic_analysis": "E0",
     "retrieval_winner": "E0",
     "human_video_acceptance": "E0",
@@ -80,9 +82,9 @@
     "note": "Preserved as historical mapping. It represented the blocked real comic evaluation set and is replaced operationally by RET-001 and RET-002."
   },
   "session": {
-    "status": "env_003_accepted_arc_002_active",
-    "last_safe_checkpoint": "ENV-003 accepted at E3 technical evidence on the local Windows machine. A 70-second managed excerpt of the approved Green Lantern script/narration pair and real CBZ produced no-OCR and OCR H.264/AAC videos. Both fully decoded, had exact 70-second duration, contained no detected black segment over 0.5 seconds, and preserved source hashes; SQLite quick_check passed. Manual review found page-level crops, visible lettering, an OCR-selected ad/tag page, asset reuse, and no clear relevance improvement, so E4/E5 and polished quality remain unproven. Head Chef used the dedicated RTX 3070 reviewer and accepted this limited E3 claim.",
-    "next_exact_action": "Execute ARC-002: route ingest, analysis, alignment, retrieval, storyboard, derived assets, and render through PipelineRunner with restart proof, preserving the existing baseline interface and recorded ENV-003 fallback behavior.",
+    "status": "arc_002_accepted_arc_004_active",
+    "last_safe_checkpoint": "ARC-002 accepted with E2 automated interruption/restart proof and E3 real Windows execution. The existing baseline API now routes ingest, analysis and derived assets, alignment, retrieval/storyboard, and render through five durable PipelineRunner stages. A real 70-second Green Lantern run completed in 165.671 seconds; the identical restart completed in 2.527 seconds with five cache hits, the same MP4 hash, a fully decodable output, and SQLite quick_check ok. Focused tests passed 18/18. A dedicated RTX 3070 qwen3.5:9b reviewer returned ACCEPT. Real process-kill and atomic promotion remain for ENV-004 and ARC-004; visual E4/E5 remains unproven.",
+    "next_exact_action": "Execute ARC-004: audit and implement atomic output promotion and artifact-write recovery, including real interruption proof without overwriting user or existing output files.",
     "handoff": "HANDOFF.md"
   },
   "sprints": [
@@ -180,7 +182,7 @@
       "id": "ARC-002",
       "title": "Durable baseline DAG integration",
       "roadmap": "R3",
-      "status": "active",
+      "status": "completed",
       "dependencies": [
         "ARC-001",
         "ENV-003"
@@ -199,7 +201,7 @@
       "id": "ARC-004",
       "title": "Atomic output and artifact audit",
       "roadmap": "R3",
-      "status": "ready",
+      "status": "active",
       "dependencies": [
         "ARC-002"
       ]

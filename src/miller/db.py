@@ -706,14 +706,17 @@ class Database:
             row = self._require_stage_run(connection, stage_run_id)
         return bool(row["cancel_requested"])
 
-    def recover_abandoned(self) -> int:
+    def recover_abandoned(self, project_id: str | None = None) -> int:
         """Mark in-progress attempts abandoned after an unclean process exit."""
 
         recovered = 0
         with self.transaction() as connection:
-            rows = connection.execute(
-                "SELECT * FROM stage_runs WHERE status=?", (StageStatus.RUNNING.value,)
-            ).fetchall()
+            query = "SELECT * FROM stage_runs WHERE status=?"
+            parameters: tuple[str, ...] = (StageStatus.RUNNING.value,)
+            if project_id is not None:
+                query += " AND project_id=?"
+                parameters += (project_id,)
+            rows = connection.execute(query, parameters).fetchall()
             for row in rows:
                 attempt_id = row["active_attempt_id"]
                 now = utc_now()
