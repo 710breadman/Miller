@@ -1,0 +1,81 @@
+{
+  "schema": "comic-sorter.miller-bundle",
+  "schema_version": "1.0.0",
+  "bundle_id": "bundle_fixture_001",
+  "created_at": "2026-01-02T03:04:05Z",
+  "library_id": "library_fixture_001",
+  "generator": {
+    "name": "comic-sorter",
+    "version": "0.1.0",
+    "analysis_profile": "offline-fixture"
+  },
+  "request": {"query": "synthetic turning point"},
+  "documents": [
+    {
+      "document_id": "document_fixture_001",
+      "issue_id": "issue_fixture_001",
+      "checksum": "sha256:fixture-document"
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "story_fixture_001",
+      "document_id": "document_fixture_001",
+      "title": "Redistributable Synthetic Story"
+    }
+  ],
+  "pages": [
+    {
+      "page_id": "page_fixture_001",
+      "document_id": "document_fixture_001",
+      "archive_path": "pages/001.png",
+      "page_index": 0,
+      "checksum": "sha256:fixture-page"
+    }
+  ],
+  "panels": [],
+  "entities": [
+    {"entity_id": "entity_fixture_hero", "entity_type": "character", "name": "Fixture Hero"}
+  ],
+  "events": [
+    {
+      "event_id": "event_fixture_turn",
+      "summary": "Fixture hero makes a reversible choice.",
+      "confidence": 0.9,
+      "evidence_ids": ["evidence_fixture_001"]
+    }
+  ],
+  "arcs": [{"arc_id": "arc_fixture_001", "name": "Fixture Arc"}],
+  "themes": [{"theme_id": "theme_fixture_choice", "name": "Choice"}],
+  "evidence": [
+    {
+      "evidence_id": "evidence_fixture_001",
+      "source_type": "metadata",
+      "document_id": "document_fixture_001",
+      "page_id": "page_fixture_001",
+      "panel_id": null,
+      "confidence": 0.9
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "candidate_fixture_001",
+      "document_id": "document_fixture_001",
+      "issue_id": "issue_fixture_001",
+      "story_id": "story_fixture_001",
+      "page_id": "page_fixture_001",
+      "panel_id": null,
+      "rank": 1,
+      "score": 0.9,
+      "moment_type": "turning_point",
+      "summary": "Fixture choice.",
+      "entities": ["entity_fixture_hero"],
+      "events": ["event_fixture_turn"],
+      "themes": ["theme_fixture_choice"],
+      "arc_ids": ["arc_fixture_001"],
+      "confidence": 0.9,
+      "evidence_ids": ["evidence_fixture_001"]
+    }
+  ],
+  "warnings": []
+}

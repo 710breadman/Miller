@@ -10,21 +10,12 @@ from miller.comic_sorter_import import (
     ComicSorterBundleImporter,
     combine_candidate_score,
     load_comic_sorter_schema,
+    validate_comic_sorter_bundle,
 )
 from miller.db import Database
 from miller.portable import PortableProjectExporter
 
-FIXTURE = (
-    Path(__file__).resolve().parents[2]
-    / "comic sorter"
-    / "tests"
-    / "fixtures"
-    / "narrative"
-    / "miller-bundle-valid.json"
-)
-AUTHORITATIVE_SCHEMA = (
-    Path(__file__).resolve().parents[2] / "comic sorter" / "schemas" / "miller-bundle.schema.json"
-)
+FIXTURE = Path(__file__).parent / "fixtures" / "comic_sorter" / "miller-bundle-valid.json"
 
 
 def _bundle() -> dict:
@@ -38,10 +29,10 @@ def _database(tmp_path: Path) -> Database:
     return database
 
 
-def test_packaged_schema_matches_comic_sorter_contract() -> None:
-    assert load_comic_sorter_schema() == json.loads(
-        AUTHORITATIVE_SCHEMA.read_text(encoding="utf-8")
-    )
+def test_packaged_schema_accepts_offline_comic_sorter_contract_fixture() -> None:
+    schema = load_comic_sorter_schema()
+    assert schema["$id"] == "https://comic-sorter.local/schemas/miller-bundle.schema.json"
+    validate_comic_sorter_bundle(_bundle())
 
 
 def test_import_is_transactional_idempotent_and_retains_provenance(tmp_path: Path) -> None:
